@@ -24,6 +24,8 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 		CEngine->Draw();
 	}
 
+	delete CEngine;
+
 	return static_cast<int>(msg.wParam);
 }
 
