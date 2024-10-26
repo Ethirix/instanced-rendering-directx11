@@ -1,11 +1,43 @@
-#include "../main.cpp"
 #include "Engine.h"
 
+#include <ctime>
 #include <d3dcompiler.h>
+
+#include "Structs/CBCamera.h"
+
+LRESULT CALLBACK WndProc(const HWND hwnd, const UINT message, const WPARAM wParam, const LPARAM lParam)
+{
+	PAINTSTRUCT ps{};
+	HDC hdc{};
+
+	switch (message)
+	{
+	case WM_ACTIVATE:
+	case WM_ACTIVATEAPP:
+	case WM_PAINT:
+		hdc = BeginPaint(hwnd, &ps);
+		EndPaint(hwnd, &ps);
+		break;
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		break;
+	case WM_CLOSE:
+		DestroyWindow(hwnd);
+		break;
+	case WM_SIZE:
+	case WM_EXITSIZEMOVE:
+		//TODO: WM_SIZE Message
+	default:
+		return DefWindowProc(hwnd, message, wParam, lParam);
+	}
+
+	return 0;
+}
 
 Engine::~Engine()
 {
 #define RELEASE_RESOURCE(x) if (x) (x)->Release();
+
 	RELEASE_RESOURCE(_device)
 	RELEASE_RESOURCE(_deviceContext)
 	RELEASE_RESOURCE(_renderTarget)
@@ -21,13 +53,64 @@ Engine::~Engine()
 
 	RELEASE_RESOURCE(_vertexShader)
 	RELEASE_RESOURCE(_pixelShader)
+
+	RELEASE_RESOURCE(_bilinearSampler)
+
+	RELEASE_RESOURCE(_cbCamera)
+#ifdef _INSTANCED_RENDERER
+	RELEASE_RESOURCE(_srvBuffer)
+	RELEASE_RESOURCE(_srvInstance)
+#endif
+
 #undef RELEASE_RESOURCE
+}
+
+void Engine::Update()
+{
+#pragma region DeltaTime
+	auto timePoint = std::chrono::high_resolution_clock::now();
+	double deltaTime = std::chrono::duration_cast
+		<std::chrono::nanoseconds>(timePoint - _lastFrameTime).count()
+		/ 1000000000.0;
+
+	_lastFrameTime = timePoint;
+
+	//Catch large dT and void frame
+	if (deltaTime > 1)
+		return;
+#pragma endregion
+
+	//Update Code
+}
+
+void Engine::Draw()
+{
+	float backgroundColour[4] = { 0.025f, 0.025f, 0.025f, 1.0f };
+	_deviceContext->OMSetRenderTargets(1, &_renderTarget, _depthStencilView);
+	_deviceContext->ClearRenderTargetView(_renderTarget, backgroundColour);
+	_deviceContext->ClearDepthStencilView(_depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0.0f);
+
+	//Draw Code
+
+	_dxgiSwapChain->Present(0, 0);
 }
 
 
 HRESULT Engine::Initialise(HINSTANCE hInstance)
 {
+	HRESULT hr = S_OK;
+#define FAIL_CHECK if (FAILED(hr)) return hr;
+	
+	hr = CreateWindowHandle(hInstance); FAIL_CHECK
+	hr = CreateD3DDevice(); FAIL_CHECK
+	hr = CreateSwapChain(); FAIL_CHECK
+	hr = CreateFrameBuffer(); FAIL_CHECK
+	hr = InitialiseShaders(); FAIL_CHECK
+	hr = InitialisePipeline(); FAIL_CHECK
+	hr = InitialiseRuntimeData(); FAIL_CHECK
 
+#undef FAIL_CHECK
+	return hr;
 }
 
 HRESULT Engine::CreateWindowHandle(HINSTANCE hInstance)
@@ -79,7 +162,7 @@ HRESULT Engine::CreateD3DDevice()
 	); FAIL_CHECK
 
 	hr = device->QueryInterface(__uuidof(ID3D11Device), reinterpret_cast<void**>(&_device)); FAIL_CHECK
-	hr = device->QueryInterface(__uuidof(ID3D11DeviceContext), reinterpret_cast<void**>(&_deviceContext)); FAIL_CHECK
+	hr = deviceContext->QueryInterface(__uuidof(ID3D11DeviceContext), reinterpret_cast<void**>(&_deviceContext)); FAIL_CHECK
 	device->Release();
 	deviceContext->Release();
 
@@ -153,8 +236,8 @@ HRESULT Engine::InitialiseShaders()
 	pixelPath = L"Engine/Shaders/PS.hlsl";
 #endif
 
-	_vertexShader = CompileVertexShader(_hWnd, _device, _inputLayout, vertexPath);
-	_pixelShader = CompilePixelShader(_hWnd, _device, pixelPath);
+	//_vertexShader = CompileVertexShader(_hWnd, _device, _inputLayout, vertexPath);
+	//_pixelShader = CompilePixelShader(_hWnd, _device, pixelPath);
 
 	return S_OK;
 }
@@ -178,9 +261,66 @@ HRESULT Engine::InitialisePipeline()
 	_deviceContext->RSSetViewports(1, &_viewport);
 
 	D3D11_BUFFER_DESC bufferDesc{};
+	bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
+	bufferDesc.ByteWidth = sizeof(CBCamera);
+	hr = _device->CreateBuffer(&bufferDesc, nullptr, &_cbCamera); FAIL_CHECK
+	_deviceContext->VSSetConstantBuffers(0, 1, &_cbCamera);
+	_deviceContext->PSSetConstantBuffers(0, 1, &_cbCamera);
+
+#ifdef _INSTANCED_RENDERER
+	bufferDesc.ByteWidth = sizeof(DirectX::XMFLOAT4);
+	bufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	bufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+	bufferDesc.StructureByteStride = sizeof(DirectX::XMFLOAT4);
+
+	hr = _device->CreateBuffer(&bufferDesc, nullptr, &_srvBuffer); FAIL_CHECK
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+
+	srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+	srvDesc.Buffer.FirstElement = 0;
+	srvDesc.Buffer.NumElements = OBJECTS_TO_INSTANCE;
+	srvDesc.Buffer.ElementOffset = 0;
+	srvDesc.Buffer.ElementWidth = sizeof(DirectX::XMFLOAT4);
+	//Errors?
+
+	hr = _device->CreateShaderResourceView(_srvBuffer, nullptr, &_srvInstance); FAIL_CHECK
+#endif
+
+	D3D11_SAMPLER_DESC bilinearSamplerDesc{};
+	bilinearSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+    bilinearSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+    bilinearSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+    bilinearSamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+    bilinearSamplerDesc.MaxLOD = 1;
+    bilinearSamplerDesc.MinLOD = 0;
+
+	hr = _device->CreateSamplerState(&bilinearSamplerDesc, &_bilinearSampler); FAIL_CHECK
+    _deviceContext->PSSetSamplers(0, 1, &_bilinearSampler);
+
+	return hr;
 
 #undef FAIL_CHECK
+}
+
+HRESULT Engine::InitialiseRuntimeData()
+{
+#define RAND(MIN, MAX) (float)((MIN) + rand() / (RAND_MAX / ((MAX) - (MIN) + 1) + 1))
+
+	HRESULT hr = S_OK;
+
+	srand(time(nullptr));
+	for (DirectX::XMFLOAT4& position : _positions)
+	{
+		position = {RAND(0, 128), RAND(0, 128), RAND(0, 128), 0};
+	}
+#undef RAND
+
+	return hr;
 }
 
 HRESULT Engine::CreateVertexShaderLayout(ID3D11Device* device, ID3D11InputLayout* inputLayout, ID3DBlob* vsBlob)
