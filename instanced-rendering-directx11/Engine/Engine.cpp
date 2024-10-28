@@ -91,6 +91,36 @@ void Engine::Draw()
 	_deviceContext->ClearDepthStencilView(_depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0.0f);
 
 	//Draw Code
+	UINT stride {sizeof(float)};
+	UINT offset {0};
+	_deviceContext->IASetVertexBuffers(0, 1, &_vertexBuffer, &stride, &offset);
+	_deviceContext->IASetIndexBuffer(_indexBuffer, DXGI_FORMAT_R32_UINT, offset);
+	_deviceContext->VSSetShader(_vertexShader, nullptr, 0);
+	_deviceContext->PSSetShader(_pixelShader, nullptr, 0);
+
+	D3D11_MAPPED_SUBRESOURCE cameraData, objectData;
+	//TODO: Update _cbCameraData
+	_deviceContext->Map(_cbCamera, 0, D3D11_MAP_WRITE_DISCARD, 0, &cameraData);
+	memcpy(cameraData.pData, &_cbCameraData, sizeof(CBCamera));
+	_deviceContext->Unmap(_cbCamera, 0);
+
+	
+
+#ifdef _INSTANCED_RENDERER
+	_deviceContext->VSSetShaderResources(0, 1, &_srvInstance);
+
+	_deviceContext->DrawIndexedInstanced(36, OBJECTS_TO_INSTANCE, 0, 0, 0);
+#else
+	for (DirectX::XMFLOAT4 position : _positions)
+	{
+		_cbObjectData.World = DirectX::XMMatrixTranslation(position.x, position.y, position.z);
+		_deviceContext->Map(_cbObject, 0, D3D11_MAP_WRITE_DISCARD, 0, &objectData);
+		memcpy(objectData.pData, &_cbObjectData, sizeof(CBObject));
+		_deviceContext->Unmap(_cbObject, 0);
+
+		_deviceContext->DrawIndexed(36, 0, 0);
+	}
+#endif
 
 	_dxgiSwapChain->Present(0, 0);
 }
@@ -104,10 +134,12 @@ HRESULT Engine::Initialise(HINSTANCE hInstance)
 	hr = CreateWindowHandle(hInstance); FAIL_CHECK
 	hr = CreateD3DDevice(); FAIL_CHECK
 	hr = CreateSwapChain(); FAIL_CHECK
+
+	hr = InitialiseRuntimeData(); FAIL_CHECK
+
 	hr = CreateFrameBuffer(); FAIL_CHECK
 	hr = InitialiseShaders(); FAIL_CHECK
 	hr = InitialisePipeline(); FAIL_CHECK
-	hr = InitialiseRuntimeData(); FAIL_CHECK
 
 #undef FAIL_CHECK
 	return hr;
@@ -236,7 +268,7 @@ HRESULT Engine::InitialiseShaders()
 	pixelPath = L"Engine/Shaders/PS.hlsl";
 #endif
 
-	//_vertexShader = CompileVertexShader(_hWnd, _device, _inputLayout, vertexPath);
+	_vertexShader = CompileVertexShader(_hWnd, _device, &_inputLayout, vertexPath);
 	//_pixelShader = CompilePixelShader(_hWnd, _device, pixelPath);
 
 	return S_OK;
@@ -270,13 +302,28 @@ HRESULT Engine::InitialisePipeline()
 	_deviceContext->VSSetConstantBuffers(0, 1, &_cbCamera);
 	_deviceContext->PSSetConstantBuffers(0, 1, &_cbCamera);
 
+	bufferDesc.ByteWidth = sizeof(CBObject);
+	hr = _device->CreateBuffer(&bufferDesc, nullptr, &_cbObject); FAIL_CHECK
+	_deviceContext->VSSetConstantBuffers(1, 1, &_cbObject);
+	_deviceContext->PSSetConstantBuffers(1, 1, &_cbObject);
+
 #ifdef _INSTANCED_RENDERER
-	bufferDesc.ByteWidth = sizeof(DirectX::XMFLOAT4);
+	bufferDesc.ByteWidth = sizeof(DirectX::XMFLOAT4X4) * OBJECTS_TO_INSTANCE;
 	bufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 	bufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-	bufferDesc.StructureByteStride = sizeof(DirectX::XMFLOAT4);
+	bufferDesc.StructureByteStride = sizeof(DirectX::XMFLOAT4X4);
 
-	hr = _device->CreateBuffer(&bufferDesc, nullptr, &_srvBuffer); FAIL_CHECK
+	D3D11_SUBRESOURCE_DATA srvData{};
+	DirectX::XMFLOAT4X4 transformedPositions[OBJECTS_TO_INSTANCE]{};
+	for (unsigned i = 0; i < OBJECTS_TO_INSTANCE; i++)
+	{
+		DirectX::XMFLOAT4 pos = _positions[i];
+		DirectX::XMMATRIX matrix = DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
+		XMStoreFloat4x4(&transformedPositions[i], matrix);
+	}
+	srvData.pSysMem = transformedPositions;
+
+	hr = _device->CreateBuffer(&bufferDesc, &srvData, &_srvBuffer); FAIL_CHECK
 
 	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc{};
 
@@ -285,7 +332,7 @@ HRESULT Engine::InitialisePipeline()
 	srvDesc.Buffer.FirstElement = 0;
 	srvDesc.Buffer.NumElements = OBJECTS_TO_INSTANCE;
 	srvDesc.Buffer.ElementOffset = 0;
-	srvDesc.Buffer.ElementWidth = sizeof(DirectX::XMFLOAT4);
+	srvDesc.Buffer.ElementWidth = sizeof(DirectX::XMFLOAT4X4);
 	//Errors?
 
 	hr = _device->CreateShaderResourceView(_srvBuffer, nullptr, &_srvInstance); FAIL_CHECK
@@ -312,6 +359,7 @@ HRESULT Engine::InitialiseRuntimeData()
 #define RAND(MIN, MAX) (float)((MIN) + rand() / (RAND_MAX / ((MAX) - (MIN) + 1) + 1))
 
 	HRESULT hr = S_OK;
+#define FAIL_CHECK if (FAILED(hr)) return hr;
 
 	srand(time(nullptr));
 	for (DirectX::XMFLOAT4& position : _positions)
@@ -320,10 +368,56 @@ HRESULT Engine::InitialiseRuntimeData()
 	}
 #undef RAND
 
+	float cubeVertices[]
+	{
+	    -1.0f, -1.0f,  1.0f,
+	     1.0f, -1.0f,  1.0f,
+	     1.0f,  1.0f,  1.0f,
+	    -1.0f,  1.0f,  1.0f,
+	    -1.0f, -1.0f, -1.0f,
+	     1.0f, -1.0f, -1.0f,
+	     1.0f,  1.0f, -1.0f,
+	    -1.0f,  1.0f, -1.0f
+	};
+
+	D3D11_BUFFER_DESC vertexBufferDesc = {};
+	vertexBufferDesc.ByteWidth = 24 * sizeof(float);
+	vertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+
+	D3D11_SUBRESOURCE_DATA subresourceVertexData = { cubeVertices };
+	hr = _device->CreateBuffer(&vertexBufferDesc, &subresourceVertexData, &_vertexBuffer); FAIL_CHECK
+
+	int cubeIndex[]
+	{
+		0, 1, 2,
+		2, 3, 0,
+		1, 5, 6,
+		6, 2, 1,
+		7, 6, 5,
+		5, 4, 7,
+		4, 0, 3,
+		3, 7, 4,
+		4, 5, 1,
+		1, 0, 4,
+		3, 2, 6,
+		6, 7, 3
+	};
+
+	D3D11_BUFFER_DESC indexBufferDesc = {};
+	indexBufferDesc.ByteWidth = 36 * sizeof(int);
+	indexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+
+	D3D11_SUBRESOURCE_DATA subresourceIndexData = { cubeIndex };
+
+	hr = _device->CreateBuffer(&indexBufferDesc, &subresourceIndexData, &_indexBuffer); FAIL_CHECK
+
+#undef FAIL_CHECK
 	return hr;
 }
 
-HRESULT Engine::CreateVertexShaderLayout(ID3D11Device* device, ID3D11InputLayout* inputLayout, ID3DBlob* vsBlob)
+HRESULT Engine::CreateVertexShaderLayout(ID3D11Device* device, ID3D11InputLayout** inputLayout, ID3DBlob* vsBlob)
 {
 	D3D11_INPUT_ELEMENT_DESC vsInputLayout[] =
 	{
@@ -339,11 +433,11 @@ HRESULT Engine::CreateVertexShaderLayout(ID3D11Device* device, ID3D11InputLayout
 		ARRAYSIZE(vsInputLayout),
 		vsBlob->GetBufferPointer(),
 		vsBlob->GetBufferSize(),
-		&inputLayout
+		inputLayout
 	);
 }
 
-ID3D11VertexShader* Engine::CompileVertexShader(HWND hWnd, ID3D11Device* device, ID3D11InputLayout* inputLayout, LPCWSTR path)
+ID3D11VertexShader* Engine::CompileVertexShader(HWND hWnd, ID3D11Device* device, ID3D11InputLayout** inputLayout, LPCWSTR path)
 {
 #define RELEASE_BLOB(blob) if(blob) (blob)->Release();
 
