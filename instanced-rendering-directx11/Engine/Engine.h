@@ -5,14 +5,16 @@
 #include <d3d11.h>
 #include <DirectXMath.h>
 #include <dxgi1_2.h>
+#include <vector>
+
+#include "Camera.h"
 
 #include "Structs/CBCamera.h"
+#ifndef _INSTANCED_RENDERER
 #include "Structs/CBObject.h"
-
-#define OBJECTS_TO_INSTANCE 128
-#ifdef _INSTANCED_RENDERER
-
 #endif
+
+#define OBJECTS_TO_RENDER 1000000
 
 class Engine
 {
@@ -22,7 +24,7 @@ public:
 	HRESULT Initialise(HINSTANCE hInstance);
 
 	void Update();
-	void Draw();
+	HRESULT Draw();
 
 private:
 	HRESULT CreateWindowHandle(HINSTANCE hInstance);
@@ -39,7 +41,8 @@ private:
 
 	HWND _hWnd{};
 
-	DirectX::XMFLOAT4 _positions[OBJECTS_TO_INSTANCE]{};
+	std::vector<DirectX::XMFLOAT3> _positions{};
+	Camera _camera{};
 
 	ID3D11Device* _device = nullptr;
 	ID3D11DeviceContext* _deviceContext = nullptr;
@@ -63,8 +66,11 @@ private:
 
 	ID3D11Buffer* _cbCamera = nullptr;
 	CBCamera _cbCameraData{};
+
+#ifndef _INSTANCED_RENDERER
 	ID3D11Buffer* _cbObject = nullptr;
 	CBObject _cbObjectData{};
+#endif
 
 #ifdef _INSTANCED_RENDERER
 	ID3D11Buffer* _srvBuffer = nullptr;

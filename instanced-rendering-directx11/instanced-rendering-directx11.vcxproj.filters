@@ -35,6 +35,9 @@
     <ClInclude Include="Engine\Structs\CBObject.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Camera.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Engine\Shaders\Buffers\CBCamera.hlsli" />
@@ -42,5 +45,7 @@
     <None Include="Engine\Shaders\VS.hlsl" />
     <None Include="Engine\Shaders\Buffers\SRVPositions.hlsli" />
     <None Include="Engine\Shaders\VS_Instanced.hlsl" />
+    <None Include="Engine\Shaders\PS_Instanced.hlsl" />
+    <None Include="Engine\Shaders\PS.hlsl" />
   </ItemGroup>
 </Project>
