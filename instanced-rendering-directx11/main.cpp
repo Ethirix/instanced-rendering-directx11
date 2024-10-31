@@ -2,10 +2,11 @@
 
 #include "Engine/Globals.h"
 
+#define FAIL_CHECK if (FAILED(hr)) { delete CEngine; return hr; }
+
 int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nShowCmd)
 {
-	if (HRESULT result = FAILED(CEngine->Initialise(hInstance)))
-		return result;	
+	HRESULT hr = CEngine->Initialise(hInstance); FAIL_CHECK
 
 	MSG msg{};
 
@@ -18,8 +19,8 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 		}
 		else 
 		{
-			CEngine->Update();
-			CEngine->Draw();
+			hr = CEngine->Update(); FAIL_CHECK
+			hr = CEngine->Draw(); FAIL_CHECK
 		}
 	}
 

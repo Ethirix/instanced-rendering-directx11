@@ -3,10 +3,9 @@
 #include <ctime>
 #include <d3dcompiler.h>
 
-#include "Structs/CBCamera.h"
+#include "GlobalDefs.h"
 
-#define FAIL_CHECK if (FAILED(hr)) return hr;
-#define RELEASE_BLOB(blob) if(blob) (blob)->Release();
+#include "Structs/CBCamera.h"
 
 LRESULT CALLBACK WndProc(const HWND hwnd, const UINT message, const WPARAM wParam, const LPARAM lParam)
 {
@@ -39,8 +38,6 @@ LRESULT CALLBACK WndProc(const HWND hwnd, const UINT message, const WPARAM wPara
 
 Engine::~Engine()
 {
-#define RELEASE_RESOURCE(x) if (x) (x)->Release();
-
 	RELEASE_RESOURCE(_device)
 	RELEASE_RESOURCE(_deviceContext)
 	RELEASE_RESOURCE(_renderTarget)
@@ -65,17 +62,13 @@ Engine::~Engine()
 
 #ifndef _INSTANCED_RENDERER
 	RELEASE_RESOURCE(_cbObject)
-#endif
-
-#ifdef _INSTANCED_RENDERER
+#else
 	RELEASE_RESOURCE(_srvBuffer)
 	RELEASE_RESOURCE(_srvInstance)
 #endif
-
-#undef RELEASE_RESOURCE
 }
 
-void Engine::Update()
+HRESULT Engine::Update()
 {
 #pragma region DeltaTime
 	auto timePoint = std::chrono::high_resolution_clock::now();
@@ -87,10 +80,12 @@ void Engine::Update()
 
 	//Catch large dT and void frame
 	if (deltaTime > 1)
-		return;
+		return S_OK;
 #pragma endregion
 
 	//Update Code
+
+	return S_OK;
 }
 
 HRESULT Engine::Draw()
@@ -218,15 +213,11 @@ HRESULT Engine::CreateSwapChain()
 
 HRESULT Engine::InitialiseRuntimeData()
 {
-#define RAND(MIN, MAX) (float)((MIN) + rand() / (RAND_MAX / ((MAX) - (MIN) + 1) + 1))
-
 	srand(time(nullptr));
 	for (unsigned i = 0; i < OBJECTS_TO_RENDER; i++)
 	{
 		_positions.emplace_back(RAND(-168, 168), RAND(-128, 128), RAND(128, 256));
 	}
-
-#undef RAND
 
 	float cubeVertices[]
 	{
@@ -377,9 +368,7 @@ HRESULT Engine::InitialisePipeline()
 	hr = _device->CreateBuffer(&bufferDesc, nullptr, &_cbObject); FAIL_CHECK
 	_deviceContext->VSSetConstantBuffers(1, 1, &_cbObject);
 	_deviceContext->PSSetConstantBuffers(1, 1, &_cbObject);
-#endif
-
-#ifdef _INSTANCED_RENDERER
+#else
 	bufferDesc.ByteWidth = sizeof(DirectX::XMFLOAT4X4) * OBJECTS_TO_RENDER;
 	bufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 	bufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
@@ -481,8 +470,8 @@ ID3D11VertexShader* Engine::CompileVertexShader(HWND hWnd, ID3D11Device* device,
 	if(FAILED(hr))
 	{
 		MessageBoxA(hWnd, static_cast<char*>(errorBlob->GetBufferPointer()), nullptr, ERROR);
-		RELEASE_BLOB(vsBlob)
-		RELEASE_BLOB(errorBlob)
+		RELEASE_RESOURCE(vsBlob)
+		RELEASE_RESOURCE(errorBlob)
 		return nullptr;
 	}
 
@@ -490,21 +479,21 @@ ID3D11VertexShader* Engine::CompileVertexShader(HWND hWnd, ID3D11Device* device,
 	hr = device->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, &vs);
 	if(FAILED(hr))
 	{
-		RELEASE_BLOB(vsBlob)
-		RELEASE_BLOB(errorBlob)
+		RELEASE_RESOURCE(vsBlob)
+		RELEASE_RESOURCE(errorBlob)
 		return nullptr;
 	}
 
 	hr = CreateVertexShaderLayout(device, inputLayout, vsBlob);
 	if(FAILED(hr))
 	{
-		RELEASE_BLOB(vsBlob)
-		RELEASE_BLOB(errorBlob)
+		RELEASE_RESOURCE(vsBlob)
+		RELEASE_RESOURCE(errorBlob)
 		return nullptr;
 	}
 
-	RELEASE_BLOB(vsBlob)
-	RELEASE_BLOB(errorBlob)
+	RELEASE_RESOURCE(vsBlob)
+	RELEASE_RESOURCE(errorBlob)
 
 	return vs;
 }
@@ -535,8 +524,8 @@ ID3D11PixelShader* Engine::CompilePixelShader(HWND hWnd, ID3D11Device* device, L
 	if(FAILED(hr))
 	{
 		MessageBoxA(hWnd, static_cast<char*>(errorBlob->GetBufferPointer()), nullptr, ERROR);
-		RELEASE_BLOB(psBlob)
-		RELEASE_BLOB(errorBlob)
+		RELEASE_RESOURCE(psBlob)
+		RELEASE_RESOURCE(errorBlob)
 		return nullptr;
 	}
 
@@ -544,13 +533,13 @@ ID3D11PixelShader* Engine::CompilePixelShader(HWND hWnd, ID3D11Device* device, L
 	hr = device->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, &ps);
 	if(FAILED(hr))
 	{
-		RELEASE_BLOB(psBlob)
-		RELEASE_BLOB(errorBlob)
+		RELEASE_RESOURCE(psBlob)
+		RELEASE_RESOURCE(errorBlob)
 		return nullptr;
 	}
 
-	RELEASE_BLOB(psBlob)
-	RELEASE_BLOB(errorBlob)
+	RELEASE_RESOURCE(psBlob)
+	RELEASE_RESOURCE(errorBlob)
 
 	return ps;
 }

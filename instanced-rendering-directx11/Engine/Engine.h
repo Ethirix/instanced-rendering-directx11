@@ -14,7 +14,7 @@
 #include "Structs/CBObject.h"
 #endif
 
-#define OBJECTS_TO_RENDER 1000000
+#define OBJECTS_TO_RENDER 160000
 
 class Engine
 {
@@ -23,7 +23,7 @@ public:
 
 	HRESULT Initialise(HINSTANCE hInstance);
 
-	void Update();
+	HRESULT Update();
 	HRESULT Draw();
 
 private:
