@@ -427,6 +427,10 @@ HRESULT Engine::InitialisePipeline()
 	return hr;
 }
 
+//TODO: Implement Vertex Based Instancing
+//TODO: Make it easier to tell objects apart (have outlines or easier to tell them apart)
+//TODO: Implement full transformation data / transform each object randomly per frame
+
 HRESULT Engine::CreateVertexShaderLayout(ID3D11Device* device, ID3D11InputLayout** inputLayout, ID3DBlob* vsBlob)
 {
 	D3D11_INPUT_ELEMENT_DESC vsInputLayout[] =
