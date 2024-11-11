@@ -276,9 +276,9 @@
       <AdditionalDependencies>user32.lib;d3d11.lib;d3dcompiler.lib;dxgi.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>MKDIR "$(OutputPath)Engine\"
+      <Command>MKDIR "$(OutputPath)Engine\Shaders"
 
-(ROBOCOPY "$(ProjectDir)Engine" "$(OutputPath)Engine" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0</Command>
+(ROBOCOPY "$(ProjectDir)Engine\Shaders" "$(OutputPath)Engine\Shaders" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug Singular Instanced|x64'">
@@ -295,9 +295,9 @@
       <AdditionalDependencies>user32.lib;d3d11.lib;d3dcompiler.lib;dxgi.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>MKDIR "$(OutputPath)Engine\"
+      <Command>MKDIR "$(OutputPath)Engine\Shaders"
 
-(ROBOCOPY "$(ProjectDir)Engine" "$(OutputPath)Engine" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0</Command>
+(ROBOCOPY "$(ProjectDir)Engine\Shaders" "$(OutputPath)Engine\Shaders" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug Instanced|x64'">
@@ -315,9 +315,9 @@
       <AdditionalDependencies>user32.lib;d3d11.lib;d3dcompiler.lib;dxgi.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>MKDIR "$(OutputPath)Engine\"
+      <Command>MKDIR "$(OutputPath)Engine\Shaders"
 
-(ROBOCOPY "$(ProjectDir)Engine" "$(OutputPath)Engine" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0</Command>
+(ROBOCOPY "$(ProjectDir)Engine\Shaders" "$(OutputPath)Engine\Shaders" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -338,9 +338,9 @@
       <AdditionalDependencies>user32.lib;d3d11.lib;d3dcompiler.lib;dxgi.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>MKDIR "$(OutputPath)Engine\"
+      <Command>MKDIR "$(OutputPath)Engine\Shaders"
 
-(ROBOCOPY "$(ProjectDir)Engine" "$(OutputPath)Engine" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0</Command>
+(ROBOCOPY "$(ProjectDir)Engine\Shaders" "$(OutputPath)Engine\Shaders" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release Singular Instanced|x64'">
@@ -361,9 +361,9 @@
       <AdditionalDependencies>user32.lib;d3d11.lib;d3dcompiler.lib;dxgi.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>MKDIR "$(OutputPath)Engine\"
+      <Command>MKDIR "$(OutputPath)Engine\Shaders"
 
-(ROBOCOPY "$(ProjectDir)Engine" "$(OutputPath)Engine" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0</Command>
+(ROBOCOPY "$(ProjectDir)Engine\Shaders" "$(OutputPath)Engine\Shaders" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release Instanced|x64'">
@@ -384,9 +384,9 @@
       <AdditionalDependencies>user32.lib;d3d11.lib;d3dcompiler.lib;dxgi.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>MKDIR "$(OutputPath)Engine\"
+      <Command>MKDIR "$(OutputPath)Engine\Shaders"
 
-(ROBOCOPY "$(ProjectDir)Engine" "$(OutputPath)Engine" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0</Command>
+(ROBOCOPY "$(ProjectDir)Engine\Shaders" "$(OutputPath)Engine\Shaders" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
