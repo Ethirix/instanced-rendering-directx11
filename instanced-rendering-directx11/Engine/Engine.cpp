@@ -221,16 +221,16 @@ HRESULT Engine::InitialiseRuntimeData()
 		_positions.emplace_back(RAND(-168, 168), RAND(-128, 128), RAND(128, 256));
 	}
 
-	float cubeVertices[]
+	DirectX::XMFLOAT3 cubeVertices[]
 	{
-	     1.0f, -1.0f, -1.0f,
-		 1.0f,  1.0f, -1.0f,
-		 1.0f, -1.0f,  1.0f,
-	     1.0f,  1.0f,  1.0f,
-	    -1.0f, -1.0f, -1.0f,
-	    -1.0f,  1.0f, -1.0f,
-	    -1.0f, -1.0f,  1.0f,
-	    -1.0f,  1.0f,  1.0f
+		{ -1.0f,  1.0f,  1.0f },
+		{ -1.0f, -1.0f,  1.0f },
+		{ -1.0f,  1.0f, -1.0f },
+		{ -1.0f, -1.0f, -1.0f },
+		{  1.0f,  1.0f,  1.0f },
+		{  1.0f, -1.0f,  1.0f },
+		{  1.0f,  1.0f, -1.0f },
+		{  1.0f, -1.0f, -1.0f }
 	};
 
 	D3D11_BUFFER_DESC vertexBufferDesc = {};
@@ -243,18 +243,18 @@ HRESULT Engine::InitialiseRuntimeData()
 
 	int cubeIndex[]
 	{
-		2, 3, 1,
-		4, 7, 3,
-		8, 5, 7,
-		6, 1, 5,
-		7, 1, 3,
-		4, 6, 8,
-		2, 4, 3,
-		4, 8, 7,
-		8, 6, 5,
-		6, 2, 1,
-		7, 5, 1,
-		4, 2, 6
+		4, 2, 0,
+		2, 7, 3,
+		6, 5, 7,
+		1, 7, 5,
+		0, 3, 1,
+		4, 1, 5,
+		4, 6, 2,
+		2, 6, 7,
+		6, 4, 5,
+		1, 3, 7,
+		0, 2, 3,
+		4, 0, 1
 	};
 
 	D3D11_BUFFER_DESC indexBufferDesc = {};
@@ -266,7 +266,7 @@ HRESULT Engine::InitialiseRuntimeData()
 
 	hr = _device->CreateBuffer(&indexBufferDesc, &subresourceIndexData, &_indexBuffer); FAIL_CHECK
 
-	UINT stride {sizeof(float)};
+	UINT stride {sizeof(DirectX::XMFLOAT3)};
 	UINT offset {0};
 	_deviceContext->IASetVertexBuffers(0, 1, &_vertexBuffer, &stride, &offset);
 	_deviceContext->IASetIndexBuffer(_indexBuffer, DXGI_FORMAT_R32_UINT, offset);
