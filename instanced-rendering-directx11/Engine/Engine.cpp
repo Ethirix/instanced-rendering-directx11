@@ -106,11 +106,7 @@ HRESULT Engine::Draw()
 		memcpy(objectData.pData, &_cbObjectData, sizeof(CBObject));
 		_deviceContext->Unmap(_cbObject, 0);
 
-#ifdef _SINGULAR_INSTANCED_RENDERER
-		_deviceContext->DrawIndexedInstanced(36, 1, 0, 0, 0);
-#else
 		_deviceContext->DrawIndexed(36, 0, 0);
-#endif
 	}
 
 #endif
