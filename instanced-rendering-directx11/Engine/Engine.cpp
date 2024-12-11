@@ -5,6 +5,8 @@
 
 #include "GlobalDefs.h"
 
+#include "Structs/PerInstanceBuffer.h"
+
 LRESULT CALLBACK WndProc(const HWND hwnd, const UINT message, const WPARAM wParam, const LPARAM lParam)
 {
 	PAINTSTRUCT ps{};
@@ -60,9 +62,12 @@ Engine::~Engine()
 
 #ifndef _INSTANCED_RENDERER
 	RELEASE_RESOURCE(_cbObject)
-#else
+#elif defined(_INSTANCED_RENDERER) && !defined(_INSTANCED_INPUT_LAYOUT)
 	RELEASE_RESOURCE(_srvBuffer)
 	RELEASE_RESOURCE(_srvInstance)
+#elif defined(_INSTANCED_RENDERER) && defined(_INSTANCED_INPUT_LAYOUT)
+	RELEASE_RESOURCE(_perInstanceBuffer);
+	delete [] _worldData;
 #endif
 }
 
@@ -93,7 +98,7 @@ HRESULT Engine::Draw()
 	_deviceContext->ClearRenderTargetView(_renderTarget, backgroundColour);
 	_deviceContext->ClearDepthStencilView(_depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0.0f);
 
-#ifdef _INSTANCED_RENDERER
+#if defined(_INSTANCED_RENDERER)
 	_deviceContext->DrawIndexedInstanced(36, OBJECTS_TO_RENDER, 0, 0, 0);
 #else
 	D3D11_MAPPED_SUBRESOURCE objectData;
@@ -241,6 +246,27 @@ HRESULT Engine::InitialiseRuntimeData()
 	D3D11_SUBRESOURCE_DATA subresourceVertexData = { cubeVertices };
 	HRESULT hr = _device->CreateBuffer(&vertexBufferDesc, &subresourceVertexData, &_vertexBuffer); FAIL_CHECK
 
+#if defined(_INSTANCED_RENDERER) && defined(_INSTANCED_INPUT_LAYOUT)
+	D3D11_BUFFER_DESC perInstanceBufferDesc = {};
+	perInstanceBufferDesc.ByteWidth = OBJECTS_TO_RENDER * sizeof(PerInstanceBuffer);
+	perInstanceBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	perInstanceBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+
+	_worldData = new PerInstanceBuffer[OBJECTS_TO_RENDER];
+	for (unsigned i = 0; i < OBJECTS_TO_RENDER; i++)
+	{
+		DirectX::XMFLOAT4X4 world{};
+		DirectX::XMMATRIX m = 
+			DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f) * DirectX::XMMatrixTranslation(
+				_positions[i].x, _positions[i].y, _positions[i].z);
+		XMStoreFloat4x4(&world, m);
+
+		_worldData[i].World = world;
+	}
+	D3D11_SUBRESOURCE_DATA perInstancedBufferData = { _worldData };
+	hr = _device->CreateBuffer(&perInstanceBufferDesc, &perInstancedBufferData, &_perInstanceBuffer); FAIL_CHECK
+#endif
+
 	int cubeIndex[]
 	{
 		4, 2, 0,
@@ -268,7 +294,12 @@ HRESULT Engine::InitialiseRuntimeData()
 
 	UINT stride {sizeof(DirectX::XMFLOAT3)};
 	UINT offset {0};
-	_deviceContext->IASetVertexBuffers(0, 1, &_vertexBuffer, &stride, &offset);
+	_deviceContext->IASetVertexBuffers(0, 1, &_perVertexBuffer, &stride, &offset);
+#ifdef _INSTANCED_INPUT_LAYOUT
+	stride = sizeof(PerInstanceBuffer);
+	_deviceContext->IASetVertexBuffers(1, 1, &_perInstanceBuffer, &stride, &offset);
+#endif
+
 	_deviceContext->IASetIndexBuffer(_indexBuffer, DXGI_FORMAT_R32_UINT, offset);
 
 	_camera.FieldOfView = 90.0f;
@@ -321,14 +352,14 @@ HRESULT Engine::CreateFrameBuffer()
 HRESULT Engine::InitialiseShaders()
 {
 	LPCWSTR vertexPath;
-	LPCWSTR pixelPath;
+	LPCWSTR pixelPath = L"Engine/Shaders/PS.hlsl";
 
-#ifdef _INSTANCED_RENDERER
+#if defined(_INSTANCED_RENDERER) && !defined(_INSTANCED_INPUT_LAYOUT)
 	vertexPath = L"Engine/Shaders/VS_Instanced.hlsl";
-	pixelPath = L"Engine/Shaders/PS_Instanced.hlsl";
+#elif defined(_INSTANCED_RENDERER) && defined(_INSTANCED_INPUT_LAYOUT)
+	vertexPath = L"Engine/Shaders/VS_InstancedInputLayout.hlsl";
 #else
 	vertexPath = L"Engine/Shaders/VS.hlsl";
-	pixelPath = L"Engine/Shaders/PS.hlsl";
 #endif
 
 	_vertexShader = CompileVertexShader(_hWnd, _device, &_inputLayout, vertexPath);
@@ -365,12 +396,12 @@ HRESULT Engine::InitialisePipeline()
 	_deviceContext->VSSetConstantBuffers(0, 1, &_cbCamera);
 	_deviceContext->PSSetConstantBuffers(0, 1, &_cbCamera);
 
-#ifndef _INSTANCED_RENDERER
+#if !defined(_INSTANCED_RENDERER)
 	bufferDesc.ByteWidth = sizeof(CBObject);
 	hr = _device->CreateBuffer(&bufferDesc, nullptr, &_cbObject); FAIL_CHECK
 	_deviceContext->VSSetConstantBuffers(1, 1, &_cbObject);
 	_deviceContext->PSSetConstantBuffers(1, 1, &_cbObject);
-#else
+#elif defined(_INSTANCED_RENDERER) && !defined(_INSTANCED_INPUT_LAYOUT)
 	bufferDesc.ByteWidth = sizeof(DirectX::XMFLOAT4X4) * OBJECTS_TO_RENDER;
 	bufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 	bufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
@@ -438,6 +469,13 @@ HRESULT Engine::CreateVertexShaderLayout(ID3D11Device* device, ID3D11InputLayout
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA,   0 },
 #ifdef _INSTANCED_RENDERER
 		{ "SV_InstanceID", 0, DXGI_FORMAT_R32_UINT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA,   0 },
+#endif
+
+#ifdef _INSTANCED_INPUT_LAYOUT
+		{ "WorldMatrix", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "WorldMatrix", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "WorldMatrix", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "WorldMatrix", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
 #endif
 	};
 

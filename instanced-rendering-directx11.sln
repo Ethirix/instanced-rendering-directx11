@@ -7,12 +7,16 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "instanced-rendering-directx
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug Instanced Input Layout|x64 = Debug Instanced Input Layout|x64
+		Debug Instanced Input Layout|x86 = Debug Instanced Input Layout|x86
 		Debug Instanced|x64 = Debug Instanced|x64
 		Debug Instanced|x86 = Debug Instanced|x86
 		Debug Singular Instanced|x64 = Debug Singular Instanced|x64
 		Debug Singular Instanced|x86 = Debug Singular Instanced|x86
 		Debug|x64 = Debug|x64
 		Debug|x86 = Debug|x86
+		Release Instanced Input Layout|x64 = Release Instanced Input Layout|x64
+		Release Instanced Input Layout|x86 = Release Instanced Input Layout|x86
 		Release Instanced|x64 = Release Instanced|x64
 		Release Instanced|x86 = Release Instanced|x86
 		Release Singular Instanced|x64 = Release Singular Instanced|x64
@@ -21,6 +25,10 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{851B32BD-A433-4B61-8DDC-CD4E6B8C7B59}.Debug Instanced Input Layout|x64.ActiveCfg = Debug Instanced Input Layout|x64
+		{851B32BD-A433-4B61-8DDC-CD4E6B8C7B59}.Debug Instanced Input Layout|x64.Build.0 = Debug Instanced Input Layout|x64
+		{851B32BD-A433-4B61-8DDC-CD4E6B8C7B59}.Debug Instanced Input Layout|x86.ActiveCfg = Debug Instanced Input Layout|Win32
+		{851B32BD-A433-4B61-8DDC-CD4E6B8C7B59}.Debug Instanced Input Layout|x86.Build.0 = Debug Instanced Input Layout|Win32
 		{851B32BD-A433-4B61-8DDC-CD4E6B8C7B59}.Debug Instanced|x64.ActiveCfg = Debug Instanced|x64
 		{851B32BD-A433-4B61-8DDC-CD4E6B8C7B59}.Debug Instanced|x64.Build.0 = Debug Instanced|x64
 		{851B32BD-A433-4B61-8DDC-CD4E6B8C7B59}.Debug Instanced|x86.ActiveCfg = Debug Instanced|Win32
@@ -33,6 +41,10 @@ Global
 		{851B32BD-A433-4B61-8DDC-CD4E6B8C7B59}.Debug|x64.Build.0 = Debug|x64
 		{851B32BD-A433-4B61-8DDC-CD4E6B8C7B59}.Debug|x86.ActiveCfg = Debug|Win32
 		{851B32BD-A433-4B61-8DDC-CD4E6B8C7B59}.Debug|x86.Build.0 = Debug|Win32
+		{851B32BD-A433-4B61-8DDC-CD4E6B8C7B59}.Release Instanced Input Layout|x64.ActiveCfg = Release Instanced Input Layout|x64
+		{851B32BD-A433-4B61-8DDC-CD4E6B8C7B59}.Release Instanced Input Layout|x64.Build.0 = Release Instanced Input Layout|x64
+		{851B32BD-A433-4B61-8DDC-CD4E6B8C7B59}.Release Instanced Input Layout|x86.ActiveCfg = Release Instanced Input Layout|Win32
+		{851B32BD-A433-4B61-8DDC-CD4E6B8C7B59}.Release Instanced Input Layout|x86.Build.0 = Release Instanced Input Layout|Win32
 		{851B32BD-A433-4B61-8DDC-CD4E6B8C7B59}.Release Instanced|x64.ActiveCfg = Release Instanced|x64
 		{851B32BD-A433-4B61-8DDC-CD4E6B8C7B59}.Release Instanced|x64.Build.0 = Release Instanced|x64
 		{851B32BD-A433-4B61-8DDC-CD4E6B8C7B59}.Release Instanced|x86.ActiveCfg = Release Instanced|Win32

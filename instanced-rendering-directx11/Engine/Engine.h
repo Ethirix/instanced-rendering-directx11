@@ -10,6 +10,7 @@
 #include "Camera.h"
 
 #include "Structs/CBCamera.h"
+#include "Structs/PerInstanceBuffer.h"
 #ifndef _INSTANCED_RENDERER
 #include "Structs/CBObject.h"
 #endif
@@ -42,6 +43,9 @@ private:
 	HWND _hWnd{};
 
 	std::vector<DirectX::XMFLOAT3> _positions{};
+#if defined(_INSTANCED_RENDERER) && defined(_INSTANCED_INPUT_LAYOUT)
+	PerInstanceBuffer* _worldData = nullptr;
+#endif
 	Camera _camera{};
 
 	ID3D11Device* _device = nullptr;
@@ -57,7 +61,11 @@ private:
 	IDXGIFactory2* _dxgiFactory = nullptr;
 	IDXGISwapChain1* _dxgiSwapChain = nullptr;
 
-	ID3D11Buffer* _vertexBuffer = nullptr;
+	ID3D11Buffer* _perVertexBuffer = nullptr;
+#if defined(_INSTANCED_RENDERER) && defined(_INSTANCED_INPUT_LAYOUT)
+	ID3D11Buffer* _perInstanceBuffer = nullptr;
+#endif
+
 	ID3D11Buffer* _indexBuffer = nullptr;
 	ID3D11VertexShader* _vertexShader = nullptr;
 	ID3D11PixelShader* _pixelShader = nullptr;
