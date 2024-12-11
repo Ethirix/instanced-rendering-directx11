@@ -51,7 +51,7 @@ Engine::~Engine()
 	RELEASE_RESOURCE(_dxgiFactory)
 	RELEASE_RESOURCE(_dxgiSwapChain)
 
-	RELEASE_RESOURCE(_vertexBuffer)
+	RELEASE_RESOURCE(_perVertexBuffer)
 	RELEASE_RESOURCE(_indexBuffer)
 	RELEASE_RESOURCE(_vertexShader)
 	RELEASE_RESOURCE(_pixelShader)
@@ -60,7 +60,7 @@ Engine::~Engine()
 
 	RELEASE_RESOURCE(_cbCamera)
 
-#ifndef _INSTANCED_RENDERER
+#if !defined(_INSTANCED_RENDERER)
 	RELEASE_RESOURCE(_cbObject)
 #elif defined(_INSTANCED_RENDERER) && !defined(_INSTANCED_INPUT_LAYOUT)
 	RELEASE_RESOURCE(_srvBuffer)
@@ -111,11 +111,7 @@ HRESULT Engine::Draw()
 		memcpy(objectData.pData, &_cbObjectData, sizeof(CBObject));
 		_deviceContext->Unmap(_cbObject, 0);
 
-#ifdef _SINGULAR_INSTANCED_RENDERER
-		_deviceContext->DrawIndexedInstanced(36, 1, 0, 0, 0);
-#else
 		_deviceContext->DrawIndexed(36, 0, 0);
-#endif
 	}
 
 #endif
@@ -223,7 +219,7 @@ HRESULT Engine::InitialiseRuntimeData()
 	srand(time(nullptr));
 	for (unsigned i = 0; i < OBJECTS_TO_RENDER; i++)
 	{
-		_positions.emplace_back(RAND(-168, 168), RAND(-128, 128), RAND(128, 256));
+		_positions.emplace_back(RAND(-164, 160), RAND(-108, 124), RAND(128, 256));
 	}
 
 	DirectX::XMFLOAT3 cubeVertices[]
@@ -238,13 +234,13 @@ HRESULT Engine::InitialiseRuntimeData()
 		{  1.0f, -1.0f, -1.0f }
 	};
 
-	D3D11_BUFFER_DESC vertexBufferDesc = {};
-	vertexBufferDesc.ByteWidth = 24 * sizeof(float);
-	vertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
-	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	D3D11_BUFFER_DESC perVertexBufferDesc = {};
+	perVertexBufferDesc.ByteWidth = 24 * sizeof(float);
+	perVertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	perVertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 
 	D3D11_SUBRESOURCE_DATA subresourceVertexData = { cubeVertices };
-	HRESULT hr = _device->CreateBuffer(&vertexBufferDesc, &subresourceVertexData, &_vertexBuffer); FAIL_CHECK
+	HRESULT hr = _device->CreateBuffer(&perVertexBufferDesc, &subresourceVertexData, &_perVertexBuffer); FAIL_CHECK
 
 #if defined(_INSTANCED_RENDERER) && defined(_INSTANCED_INPUT_LAYOUT)
 	D3D11_BUFFER_DESC perInstanceBufferDesc = {};
