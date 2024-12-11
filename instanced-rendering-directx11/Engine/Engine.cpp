@@ -49,7 +49,7 @@ Engine::~Engine()
 	RELEASE_RESOURCE(_dxgiFactory)
 	RELEASE_RESOURCE(_dxgiSwapChain)
 
-	RELEASE_RESOURCE(_vertexBuffer)
+	RELEASE_RESOURCE(_perVertexBuffer)
 	RELEASE_RESOURCE(_indexBuffer)
 	RELEASE_RESOURCE(_vertexShader)
 	RELEASE_RESOURCE(_pixelShader)
@@ -58,7 +58,7 @@ Engine::~Engine()
 
 	RELEASE_RESOURCE(_cbCamera)
 
-#ifndef _INSTANCED_RENDERER
+#if !defined(_INSTANCED_RENDERER)
 	RELEASE_RESOURCE(_cbObject)
 #else
 	RELEASE_RESOURCE(_srvBuffer)
@@ -214,7 +214,7 @@ HRESULT Engine::InitialiseRuntimeData()
 	srand(time(nullptr));
 	for (unsigned i = 0; i < OBJECTS_TO_RENDER; i++)
 	{
-		_positions.emplace_back(RAND(-168, 168), RAND(-128, 128), RAND(128, 256));
+		_positions.emplace_back(RAND(-164, 160), RAND(-108, 124), RAND(128, 256));
 	}
 
 	DirectX::XMFLOAT3 cubeVertices[]
@@ -229,13 +229,13 @@ HRESULT Engine::InitialiseRuntimeData()
 		{  1.0f, -1.0f, -1.0f }
 	};
 
-	D3D11_BUFFER_DESC vertexBufferDesc = {};
-	vertexBufferDesc.ByteWidth = 24 * sizeof(float);
-	vertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
-	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	D3D11_BUFFER_DESC perVertexBufferDesc = {};
+	perVertexBufferDesc.ByteWidth = 24 * sizeof(float);
+	perVertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	perVertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 
 	D3D11_SUBRESOURCE_DATA subresourceVertexData = { cubeVertices };
-	HRESULT hr = _device->CreateBuffer(&vertexBufferDesc, &subresourceVertexData, &_vertexBuffer); FAIL_CHECK
+	HRESULT hr = _device->CreateBuffer(&perVertexBufferDesc, &subresourceVertexData, &_perVertexBuffer); FAIL_CHECK
 
 	int cubeIndex[]
 	{
@@ -264,7 +264,7 @@ HRESULT Engine::InitialiseRuntimeData()
 
 	UINT stride {sizeof(DirectX::XMFLOAT3)};
 	UINT offset {0};
-	_deviceContext->IASetVertexBuffers(0, 1, &_vertexBuffer, &stride, &offset);
+	_deviceContext->IASetVertexBuffers(0, 1, &_perVertexBuffer, &stride, &offset);
 	_deviceContext->IASetIndexBuffer(_indexBuffer, DXGI_FORMAT_R32_UINT, offset);
 
 	_camera.FieldOfView = 90.0f;
@@ -317,14 +317,12 @@ HRESULT Engine::CreateFrameBuffer()
 HRESULT Engine::InitialiseShaders()
 {
 	LPCWSTR vertexPath;
-	LPCWSTR pixelPath;
+	LPCWSTR pixelPath = L"Engine/Shaders/PS.hlsl";
 
-#ifdef _INSTANCED_RENDERER
+#if defined(_INSTANCED_RENDERER) && !defined(_INSTANCED_INPUT_LAYOUT)
 	vertexPath = L"Engine/Shaders/VS_Instanced.hlsl";
-	pixelPath = L"Engine/Shaders/PS_Instanced.hlsl";
 #else
 	vertexPath = L"Engine/Shaders/VS.hlsl";
-	pixelPath = L"Engine/Shaders/PS.hlsl";
 #endif
 
 	_vertexShader = CompileVertexShader(_hWnd, _device, &_inputLayout, vertexPath);
@@ -361,7 +359,7 @@ HRESULT Engine::InitialisePipeline()
 	_deviceContext->VSSetConstantBuffers(0, 1, &_cbCamera);
 	_deviceContext->PSSetConstantBuffers(0, 1, &_cbCamera);
 
-#ifndef _INSTANCED_RENDERER
+#if !defined(_INSTANCED_RENDERER)
 	bufferDesc.ByteWidth = sizeof(CBObject);
 	hr = _device->CreateBuffer(&bufferDesc, nullptr, &_cbObject); FAIL_CHECK
 	_deviceContext->VSSetConstantBuffers(1, 1, &_cbObject);

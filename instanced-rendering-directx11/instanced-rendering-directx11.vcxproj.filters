@@ -48,7 +48,6 @@
     <None Include="Engine\Shaders\VS.hlsl" />
     <None Include="Engine\Shaders\Buffers\SRVPositions.hlsli" />
     <None Include="Engine\Shaders\VS_Instanced.hlsl" />
-    <None Include="Engine\Shaders\PS_Instanced.hlsl" />
     <None Include="Engine\Shaders\PS.hlsl" />
   </ItemGroup>
 </Project>

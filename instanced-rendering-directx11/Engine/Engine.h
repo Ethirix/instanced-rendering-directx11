@@ -57,7 +57,7 @@ private:
 	IDXGIFactory2* _dxgiFactory = nullptr;
 	IDXGISwapChain1* _dxgiSwapChain = nullptr;
 
-	ID3D11Buffer* _vertexBuffer = nullptr;
+	ID3D11Buffer* _perVertexBuffer = nullptr;
 	ID3D11Buffer* _indexBuffer = nullptr;
 	ID3D11VertexShader* _vertexShader = nullptr;
 	ID3D11PixelShader* _pixelShader = nullptr;
