@@ -1,5 +1,5 @@
 #include "Buffers/CBCamera.hlsli"
-#include "Buffers/SRVPositions.hlsli"
+#include "Buffers/SRVInstanceData.hlsli"
 
 float4 VS_Main(
 	float3 pos : POSITION,
@@ -7,7 +7,7 @@ float4 VS_Main(
 {
     float4 pos4 = float4(pos, 1.0f);
 
-    pos4 = mul(pos4, SRVPositions[index].Position);
+    pos4 = mul(pos4, transpose(SRVInstanceData[index].World));
     pos4 = mul(pos4, View);
     pos4 = mul(pos4, Projection);
 

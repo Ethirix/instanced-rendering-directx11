@@ -3,5 +3,5 @@
 
 struct CBObject
 {
-	DirectX::XMMATRIX World;
+	DirectX::XMFLOAT4X4 World;
 };

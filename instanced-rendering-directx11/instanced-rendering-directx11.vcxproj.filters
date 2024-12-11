@@ -21,6 +21,12 @@
     <ClCompile Include="Engine\Engine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\RenderObject.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Transform.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Engine.h">
@@ -44,12 +50,18 @@
     <ClInclude Include="Engine\Structs\PerInstanceBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\RenderObject.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Transform.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Engine\Shaders\Buffers\CBCamera.hlsli" />
     <None Include="Engine\Shaders\Buffers\CBObject.hlsli" />
     <None Include="Engine\Shaders\VS.hlsl" />
-    <None Include="Engine\Shaders\Buffers\SRVPositions.hlsli" />
+    <None Include="Engine\Shaders\Buffers\SRVInstanceData.hlsli" />
     <None Include="Engine\Shaders\VS_Instanced.hlsl" />
     <None Include="Engine\Shaders\PS.hlsl" />
     <None Include="Engine\Shaders\VS_InstancedInputLayout.hlsl" />

@@ -3,14 +3,15 @@
 #include <chrono>
 #include <windows.h>
 #include <d3d11.h>
-#include <DirectXMath.h>
 #include <dxgi1_2.h>
-#include <vector>
 
 #include "Camera.h"
+#include "RenderObject.h"
 
 #include "Structs/CBCamera.h"
+#ifdef _INSTANCED_RENDERER
 #include "Structs/PerInstanceBuffer.h"
+#endif
 #ifndef _INSTANCED_RENDERER
 #include "Structs/CBObject.h"
 #endif
@@ -42,8 +43,8 @@ private:
 
 	HWND _hWnd{};
 
-	std::vector<DirectX::XMFLOAT3> _positions{};
-#if defined(_INSTANCED_RENDERER) && defined(_INSTANCED_INPUT_LAYOUT)
+	RenderObject* _objects = nullptr;
+#if defined(_INSTANCED_RENDERER)
 	PerInstanceBuffer* _worldData = nullptr;
 #endif
 	Camera _camera{};
