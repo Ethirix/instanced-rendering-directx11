@@ -2,10 +2,9 @@
 
 #include <ctime>
 #include <d3dcompiler.h>
+#include <iostream>
 
 #include "GlobalDefs.h"
-
-#include "Structs/PerInstanceBuffer.h"
 
 LRESULT CALLBACK WndProc(const HWND hwnd, const UINT message, const WPARAM wParam, const LPARAM lParam)
 {
@@ -69,6 +68,8 @@ Engine::~Engine()
 	RELEASE_RESOURCE(_perInstanceBuffer);
 	delete [] _worldData;
 #endif
+
+	delete [] _objects;
 }
 
 HRESULT Engine::Update()
@@ -87,6 +88,10 @@ HRESULT Engine::Update()
 #pragma endregion
 
 	//Update Code
+	for (unsigned i = 0; i < OBJECTS_TO_RENDER; i++)
+	{
+		_objects[i].Transform.AddPosition(deltaTime, 0, 0);
+	}
 
 	return S_OK;
 }
@@ -99,14 +104,30 @@ HRESULT Engine::Draw()
 	_deviceContext->ClearDepthStencilView(_depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0.0f);
 
 #if defined(_INSTANCED_RENDERER)
+	for (unsigned i = 0; i < OBJECTS_TO_RENDER; i++)
+	{
+		_worldData[i].World = _objects[i].Transform.GetWorldMatrix();
+	}
+
+#if !defined(_INSTANCED_INPUT_LAYOUT)
+	D3D11_MAPPED_SUBRESOURCE instanceData;
+	HRESULT hr = _deviceContext->Map(_srvBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &instanceData); FAIL_CHECK
+	memcpy(instanceData.pData, _worldData, sizeof(PerInstanceBuffer) * OBJECTS_TO_RENDER);
+	_deviceContext->Unmap(_srvBuffer, 0);
+
+#else
+	D3D11_MAPPED_SUBRESOURCE instanceData;
+	HRESULT hr = _deviceContext->Map(_perInstanceBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &instanceData); FAIL_CHECK
+	memcpy(instanceData.pData, _worldData, sizeof(PerInstanceBuffer) * OBJECTS_TO_RENDER);
+	_deviceContext->Unmap(_perInstanceBuffer, 0);
+#endif
+
 	_deviceContext->DrawIndexedInstanced(36, OBJECTS_TO_RENDER, 0, 0, 0);
 #else
 	D3D11_MAPPED_SUBRESOURCE objectData;
 	for (unsigned i = 0; i < OBJECTS_TO_RENDER; i++)
 	{
-		_cbObjectData.World = XMMatrixTranspose(
-			DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f) * DirectX::XMMatrixTranslation(
-				_positions[i].x, _positions[i].y, _positions[i].z));
+		_cbObjectData.World = _objects[i].Transform.GetWorldMatrix();
 		HRESULT hr = _deviceContext->Map(_cbObject, 0, D3D11_MAP_WRITE_DISCARD, 0, &objectData); FAIL_CHECK
 		memcpy(objectData.pData, &_cbObjectData, sizeof(CBObject));
 		_deviceContext->Unmap(_cbObject, 0);
@@ -217,9 +238,12 @@ HRESULT Engine::CreateSwapChain()
 HRESULT Engine::InitialiseRuntimeData()
 {
 	srand(time(nullptr));
+	_objects = new RenderObject[OBJECTS_TO_RENDER];
 	for (unsigned i = 0; i < OBJECTS_TO_RENDER; i++)
 	{
-		_positions.emplace_back(RAND(-164, 160), RAND(-108, 124), RAND(128, 256));
+		RenderObject* ro = new RenderObject();
+		ro->Transform.SetPosition({RAND(-164, 160), RAND(-108, 124), RAND(128, 256)});
+		_objects[i] = *ro;
 	}
 
 	DirectX::XMFLOAT3 cubeVertices[]
@@ -236,29 +260,27 @@ HRESULT Engine::InitialiseRuntimeData()
 
 	D3D11_BUFFER_DESC perVertexBufferDesc = {};
 	perVertexBufferDesc.ByteWidth = 24 * sizeof(float);
-	perVertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	perVertexBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
 	perVertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	perVertexBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
 	D3D11_SUBRESOURCE_DATA subresourceVertexData = { cubeVertices };
 	HRESULT hr = _device->CreateBuffer(&perVertexBufferDesc, &subresourceVertexData, &_perVertexBuffer); FAIL_CHECK
 
-#if defined(_INSTANCED_RENDERER) && defined(_INSTANCED_INPUT_LAYOUT)
-	D3D11_BUFFER_DESC perInstanceBufferDesc = {};
-	perInstanceBufferDesc.ByteWidth = OBJECTS_TO_RENDER * sizeof(PerInstanceBuffer);
-	perInstanceBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
-	perInstanceBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-
+#if defined(_INSTANCED_RENDERER)
 	_worldData = new PerInstanceBuffer[OBJECTS_TO_RENDER];
 	for (unsigned i = 0; i < OBJECTS_TO_RENDER; i++)
 	{
-		DirectX::XMFLOAT4X4 world{};
-		DirectX::XMMATRIX m = 
-			DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f) * DirectX::XMMatrixTranslation(
-				_positions[i].x, _positions[i].y, _positions[i].z);
-		XMStoreFloat4x4(&world, m);
-
-		_worldData[i].World = world;
+		_worldData[i].World = _objects[i].Transform.GetWorldMatrix();
 	}
+#endif
+#if defined(_INSTANCED_RENDERER) && defined(_INSTANCED_INPUT_LAYOUT)
+	D3D11_BUFFER_DESC perInstanceBufferDesc = {};
+	perInstanceBufferDesc.ByteWidth = OBJECTS_TO_RENDER * sizeof(PerInstanceBuffer);
+	perInstanceBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+	perInstanceBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	perInstanceBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
 	D3D11_SUBRESOURCE_DATA perInstancedBufferData = { _worldData };
 	hr = _device->CreateBuffer(&perInstanceBufferDesc, &perInstancedBufferData, &_perInstanceBuffer); FAIL_CHECK
 #endif
@@ -398,24 +420,13 @@ HRESULT Engine::InitialisePipeline()
 	_deviceContext->VSSetConstantBuffers(1, 1, &_cbObject);
 	_deviceContext->PSSetConstantBuffers(1, 1, &_cbObject);
 #elif defined(_INSTANCED_RENDERER) && !defined(_INSTANCED_INPUT_LAYOUT)
-	bufferDesc.ByteWidth = sizeof(DirectX::XMFLOAT4X4) * OBJECTS_TO_RENDER;
+	bufferDesc.ByteWidth = sizeof(PerInstanceBuffer) * OBJECTS_TO_RENDER;
 	bufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 	bufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-	bufferDesc.StructureByteStride = sizeof(DirectX::XMFLOAT4X4);
+	bufferDesc.StructureByteStride = sizeof(PerInstanceBuffer);
 
 	D3D11_SUBRESOURCE_DATA srvData{};
-	std::vector<DirectX::XMFLOAT4X4> transformedPositions{};
-	DirectX::XMFLOAT4X4 temp;
-	for (unsigned i = 0; i < OBJECTS_TO_RENDER; i++)
-	{
-		DirectX::XMFLOAT3 pos = _positions[i];
-		DirectX::XMMATRIX matrix = XMMatrixTranspose(
-			DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f) * DirectX::XMMatrixTranslation(
-				pos.x, pos.y, pos.z));
-		XMStoreFloat4x4(&temp, matrix);
-		transformedPositions.emplace_back(temp);
-	}
-	srvData.pSysMem = &transformedPositions[0];
+	srvData.pSysMem = _worldData;
 
 	hr = _device->CreateBuffer(&bufferDesc, &srvData, &_srvBuffer); FAIL_CHECK
 
@@ -423,8 +434,6 @@ HRESULT Engine::InitialisePipeline()
 	srvDesc.Format = DXGI_FORMAT_UNKNOWN;
 	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
 	srvDesc.Buffer.NumElements = OBJECTS_TO_RENDER;
-	//srvDesc.Buffer.ElementWidth = sizeof(DirectX::XMFLOAT4X4);
-	//Errors?
 
 	hr = _device->CreateShaderResourceView(_srvBuffer, &srvDesc, &_srvInstance); FAIL_CHECK
 	_deviceContext->VSSetShaderResources(0, 1, &_srvInstance);

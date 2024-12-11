@@ -408,6 +408,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Engine.cpp" />
+    <ClCompile Include="Engine\RenderObject.cpp" />
+    <ClCompile Include="Engine\Transform.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -415,12 +417,14 @@
     <ClInclude Include="Engine\Engine.h" />
     <ClInclude Include="Engine\GlobalDefs.h" />
     <ClInclude Include="Engine\Globals.h" />
+    <ClInclude Include="Engine\RenderObject.h" />
     <ClInclude Include="Engine\Structs\CBCamera.h" />
     <ClInclude Include="Engine\Structs\CBObject.h" />
     <ClInclude Include="Engine\Structs\PerInstanceBuffer.h" />
+    <ClInclude Include="Engine\Transform.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Engine\Shaders\Buffers\SRVPositions.hlsli" />
+    <None Include="Engine\Shaders\Buffers\SRVInstanceData.hlsli" />
     <None Include="Engine\Shaders\VS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release Instanced|Win32'">Vertex</ShaderType>
