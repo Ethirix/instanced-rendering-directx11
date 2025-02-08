@@ -24,6 +24,4 @@ private:
 	DirectX::XMFLOAT4 _rotation;
 	DirectX::XMFLOAT4 _scale;
 	DirectX::XMFLOAT4X4 _world;
-
-	bool _dirty = true;
 };
