@@ -1,15 +1,28 @@
+#include "VSOut.hlsli"
+
 #include "Buffers/CBCamera.hlsli"
 #include "Buffers/SRVInstanceData.hlsli"
 
-float4 VS_Main(
-	float3 pos : POSITION,
-	uint index : SV_InstanceID) : SV_POSITION
+struct VSIn
 {
-    float4 pos4 = float4(pos, 1.0f);
+	float3 Position : POSITION;
+	float3 Normal : NORMAL;
+	float3 Color : COLOR;
+	uint Index : SV_InstanceID;
+};
 
-    pos4 = mul(pos4, transpose(SRVInstanceData[index].World));
-    pos4 = mul(pos4, View);
-    pos4 = mul(pos4, Projection);
+VSOut VS_Main(VSIn input)
+{
+    VSOut output = (VSOut)0;
 
-    return pos4;
+    output.Position = float4(input.Position, 1.0f);
+
+    output.Position = mul(output.Position, transpose(SRVInstanceData[input.Index].World));
+    output.Position = mul(output.Position, View);
+    output.Position = mul(output.Position, Projection);
+
+    output.Normal = input.Normal;
+	output.Color = input.Color;
+
+    return output;
 }

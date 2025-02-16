@@ -6,6 +6,8 @@
 
 #include "GlobalDefs.h"
 
+#include "Structs/PerVertexBuffer.h"
+
 LRESULT CALLBACK WndProc(const HWND hwnd, const UINT message, const WPARAM wParam, const LPARAM lParam)
 {
 	PAINTSTRUCT ps{};
@@ -88,10 +90,6 @@ HRESULT Engine::Update()
 #pragma endregion
 
 	//Update Code
-	for (unsigned i = 0; i < OBJECTS_TO_RENDER; i++)
-	{
-		_objects[i].Transform.AddPosition(deltaTime, 0, 0);
-	}
 
 	return S_OK;
 }
@@ -167,7 +165,7 @@ HRESULT Engine::CreateWindowHandle(HINSTANCE hInstance)
 	RegisterClass(&wndClass);
 
 	_hWnd = CreateWindowEx(0, windowName, windowName, WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT,
-	                       800, 600, nullptr, nullptr, hInstance, nullptr);
+	                       RESOLUTION_X, RESOLUTION_Y, nullptr, nullptr, hInstance, nullptr);
 
 	return S_OK;
 }
@@ -242,24 +240,24 @@ HRESULT Engine::InitialiseRuntimeData()
 	for (unsigned i = 0; i < OBJECTS_TO_RENDER; i++)
 	{
 		RenderObject* ro = new RenderObject();
-		ro->Transform.SetPosition({RAND(-164, 160), RAND(-108, 124), RAND(128, 256)});
+		ro->Transform.SetPosition({RAND(-225, 225), RAND(-115, 125), RAND(128, 256)});
 		_objects[i] = *ro;
 	}
 
-	DirectX::XMFLOAT3 cubeVertices[]
+	PerVertexBuffer cubeVertices[]
 	{
-		{ -1.0f,  1.0f,  1.0f },
-		{ -1.0f, -1.0f,  1.0f },
-		{ -1.0f,  1.0f, -1.0f },
-		{ -1.0f, -1.0f, -1.0f },
-		{  1.0f,  1.0f,  1.0f },
-		{  1.0f, -1.0f,  1.0f },
-		{  1.0f,  1.0f, -1.0f },
-		{  1.0f, -1.0f, -1.0f }
+		{{ -1.0f,  1.0f,  1.0f }, { -1.0f,  1.0f,  1.0f }, { 1.0f, 1.0f, 1.0f }},
+		{{ -1.0f, -1.0f,  1.0f }, { -1.0f, -1.0f,  1.0f }, { 0.5f, 1.0f, 1.0f }},
+		{{ -1.0f,  1.0f, -1.0f }, { -1.0f,  1.0f, -1.0f }, { 0.0f, 1.0f, 1.0f }},
+		{{ -1.0f, -1.0f, -1.0f }, { -1.0f, -1.0f, -1.0f }, { 0.0f, 0.5f, 1.0f }},
+		{{  1.0f,  1.0f,  1.0f }, {  1.0f,  1.0f,  1.0f }, { 0.0f, 0.0f, 1.0f }},
+		{{  1.0f, -1.0f,  1.0f }, {  1.0f, -1.0f,  1.0f }, { 0.0f, 0.0f, 0.5f }},
+		{{  1.0f,  1.0f, -1.0f }, {  1.0f,  1.0f, -1.0f }, { 0.0f, 0.0f, 0.0f }},
+		{{  1.0f, -1.0f, -1.0f }, {  1.0f, -1.0f, -1.0f }, { 0.5f, 0.0f, 0.0f }}
 	};
 
 	D3D11_BUFFER_DESC perVertexBufferDesc = {};
-	perVertexBufferDesc.ByteWidth = 24 * sizeof(float);
+	perVertexBufferDesc.ByteWidth = 8 * sizeof(PerVertexBuffer);
 	perVertexBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
 	perVertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	perVertexBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -276,10 +274,10 @@ HRESULT Engine::InitialiseRuntimeData()
 #endif
 #if defined(_INSTANCED_RENDERER) && defined(_INSTANCED_INPUT_LAYOUT)
 	D3D11_BUFFER_DESC perInstanceBufferDesc = {};
-	perInstanceBufferDesc.ByteWidth = OBJECTS_TO_RENDER * sizeof(PerInstanceBuffer);
-	perInstanceBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-	perInstanceBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	perInstanceBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	perInstanceBufferDesc.ByteWidth         = OBJECTS_TO_RENDER * sizeof(PerInstanceBuffer);
+	perInstanceBufferDesc.Usage             = D3D11_USAGE_DYNAMIC;
+	perInstanceBufferDesc.BindFlags         = D3D11_BIND_VERTEX_BUFFER;
+	perInstanceBufferDesc.CPUAccessFlags    = D3D11_CPU_ACCESS_WRITE;
 
 	D3D11_SUBRESOURCE_DATA perInstancedBufferData = { _worldData };
 	hr = _device->CreateBuffer(&perInstanceBufferDesc, &perInstancedBufferData, &_perInstanceBuffer); FAIL_CHECK
@@ -310,7 +308,7 @@ HRESULT Engine::InitialiseRuntimeData()
 
 	hr = _device->CreateBuffer(&indexBufferDesc, &subresourceIndexData, &_indexBuffer); FAIL_CHECK
 
-	UINT stride {sizeof(DirectX::XMFLOAT3)};
+	UINT stride {sizeof(PerVertexBuffer)};
 	UINT offset {0};
 	_deviceContext->IASetVertexBuffers(0, 1, &_perVertexBuffer, &stride, &offset);
 #ifdef _INSTANCED_INPUT_LAYOUT
@@ -336,7 +334,7 @@ HRESULT Engine::InitialiseRuntimeData()
 
 	XMStoreFloat4x4(&_camera.Projection,
 		DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(_camera.FieldOfView),
-			800.0f / 600.0f,
+			static_cast<float>(RESOLUTION_X) / static_cast<float>(RESOLUTION_Y),
 			_camera.NearDepth,
 			_camera.FarDepth));
 
@@ -401,7 +399,7 @@ HRESULT Engine::InitialisePipeline()
 	HRESULT hr = _device->CreateRasterizerState(&rasterizerDesc, &_rasterizerState); FAIL_CHECK
 	_deviceContext->RSSetState(_rasterizerState);
 
-	_viewport = { 0.0f, 0.0f, 800, 600, 0.0f, 1.0f };
+	_viewport = { 0.0f, 0.0f, RESOLUTION_X, RESOLUTION_Y, 0.0f, 1.0f };
 	_deviceContext->RSSetViewports(1, &_viewport);
 
 	D3D11_BUFFER_DESC bufferDesc{};
@@ -463,15 +461,13 @@ HRESULT Engine::InitialisePipeline()
 	return hr;
 }
 
-//TODO: Implement Vertex Based Instancing
-//TODO: Make it easier to tell objects apart (have outlines or easier to tell them apart)
-//TODO: Implement full transformation data / transform each object randomly per frame
-
 HRESULT Engine::CreateVertexShaderLayout(ID3D11Device* device, ID3D11InputLayout** inputLayout, ID3DBlob* vsBlob)
 {
 	D3D11_INPUT_ELEMENT_DESC vsInputLayout[] =
 	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA,   0 },
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "COLOR",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 #ifdef _INSTANCED_RENDERER
 		{ "SV_InstanceID", 0, DXGI_FORMAT_R32_UINT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA,   0 },
 #endif
