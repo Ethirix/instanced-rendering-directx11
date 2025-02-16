@@ -421,6 +421,7 @@
     <ClInclude Include="Engine\Structs\CBCamera.h" />
     <ClInclude Include="Engine\Structs\CBObject.h" />
     <ClInclude Include="Engine\Structs\PerInstanceBuffer.h" />
+    <ClInclude Include="Engine\Structs\PerVertexBuffer.h" />
     <ClInclude Include="Engine\Transform.h" />
   </ItemGroup>
   <ItemGroup>
@@ -446,6 +447,7 @@
     <None Include="Engine\Shaders\Buffers\CBObject.hlsli" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Engine\Shaders\VSOut.hlsli" />
     <None Include="Engine\Shaders\VS_Instanced.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug Instanced|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug Instanced Input Layout|x64'">Vertex</ShaderType>

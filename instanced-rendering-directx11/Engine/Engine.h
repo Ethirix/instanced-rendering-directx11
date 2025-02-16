@@ -16,7 +16,9 @@
 #include "Structs/CBObject.h"
 #endif
 
-#define OBJECTS_TO_RENDER 160000
+constexpr int OBJECTS_TO_RENDER = 160000;
+constexpr int RESOLUTION_X      = 1280;
+constexpr int RESOLUTION_Y      = 720;
 
 class Engine
 {
