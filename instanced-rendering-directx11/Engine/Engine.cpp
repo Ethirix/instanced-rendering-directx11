@@ -91,6 +91,8 @@ HRESULT Engine::Update()
 
 	//Update Code
 
+	_camera.Update(deltaTime * 5.0);
+
 	return S_OK;
 }
 
@@ -100,6 +102,14 @@ HRESULT Engine::Draw()
 	_deviceContext->OMSetRenderTargets(1, &_renderTarget, _depthStencilView);
 	_deviceContext->ClearRenderTargetView(_renderTarget, backgroundColour);
 	_deviceContext->ClearDepthStencilView(_depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0.0f);
+
+	D3D11_MAPPED_SUBRESOURCE cameraData;
+	_cbCameraData.View = XMMatrixTranspose(XMLoadFloat4x4(&_camera.View));
+	_cbCameraData.Projection = XMMatrixTranspose(XMLoadFloat4x4(&_camera.Projection));
+	_cbCameraData.CameraPosition = {_camera.Eye.x, _camera.Eye.y, _camera.Eye.z, 1};
+	_deviceContext->Map(_cbCamera, 0, D3D11_MAP_WRITE_DISCARD, 0, &cameraData);
+	memcpy(cameraData.pData, &_cbCameraData, sizeof(CBCamera));
+	_deviceContext->Unmap(_cbCamera, 0);
 
 #if defined(_INSTANCED_RENDERER)
 	for (unsigned i = 0; i < OBJECTS_TO_RENDER; i++)
@@ -246,14 +256,14 @@ HRESULT Engine::InitialiseRuntimeData()
 
 	PerVertexBuffer cubeVertices[]
 	{
-		{{ -1.0f,  1.0f,  1.0f }, { -1.0f,  1.0f,  1.0f }, { 1.0f, 1.0f, 1.0f }},
-		{{ -1.0f, -1.0f,  1.0f }, { -1.0f, -1.0f,  1.0f }, { 0.5f, 1.0f, 1.0f }},
-		{{ -1.0f,  1.0f, -1.0f }, { -1.0f,  1.0f, -1.0f }, { 0.0f, 1.0f, 1.0f }},
-		{{ -1.0f, -1.0f, -1.0f }, { -1.0f, -1.0f, -1.0f }, { 0.0f, 0.5f, 1.0f }},
-		{{  1.0f,  1.0f,  1.0f }, {  1.0f,  1.0f,  1.0f }, { 0.0f, 0.0f, 1.0f }},
-		{{  1.0f, -1.0f,  1.0f }, {  1.0f, -1.0f,  1.0f }, { 0.0f, 0.0f, 0.5f }},
-		{{  1.0f,  1.0f, -1.0f }, {  1.0f,  1.0f, -1.0f }, { 0.0f, 0.0f, 0.0f }},
-		{{  1.0f, -1.0f, -1.0f }, {  1.0f, -1.0f, -1.0f }, { 0.5f, 0.0f, 0.0f }}
+		{{ -1.0f,  1.0f,  1.0f }, { -0.5774,  0.5774,  0.5774, }, { 1.0f, 1.0f, 1.0f }},
+		{{ -1.0f, -1.0f,  1.0f }, { -0.5774, -0.5774, -0.5774, }, { 0.5f, 1.0f, 1.0f }},
+		{{ -1.0f,  1.0f, -1.0f }, { -0.5774, -0.5774,  0.5774, }, { 0.0f, 1.0f, 1.0f }},
+		{{ -1.0f, -1.0f, -1.0f }, { -0.5774,  0.5774, -0.5774, }, { 0.0f, 0.5f, 1.0f }},
+		{{  1.0f,  1.0f,  1.0f }, {  0.5774, -0.5774, -0.5774, }, { 0.0f, 0.0f, 1.0f }},
+		{{  1.0f, -1.0f,  1.0f }, {  0.5774,  0.5774, -0.5774, }, { 0.0f, 0.0f, 0.5f }},
+		{{  1.0f,  1.0f, -1.0f }, {  0.5774, -0.5774,  0.5774, }, { 0.0f, 0.0f, 0.0f }},
+		{{  1.0f, -1.0f, -1.0f }, {  0.5774,  0.5774,  0.5774, }, { 0.5f, 0.0f, 0.0f }}
 	};
 
 	D3D11_BUFFER_DESC perVertexBufferDesc = {};
@@ -322,15 +332,10 @@ HRESULT Engine::InitialiseRuntimeData()
 	_camera.At = {0.0f, 0.0f, 1.0f};
 	_camera.Up = {0.0f, 1.0f, 0.0f};
 
-	_camera.NearDepth = 0.01f;
-	_camera.FarDepth = 100000.0f;
+	_camera.NearDepth = 0.1f;
+	_camera.FarDepth = 1000.0f;
 
-	_camera.Eye = {};
-
-	XMStoreFloat4x4(&_camera.View, DirectX::XMMatrixLookToLH(
-		XMLoadFloat3(&_camera.Eye),
-		XMLoadFloat3(&_camera.At),
-		XMLoadFloat3(&_camera.Up)));
+	_camera.Eye = { 0, 10, 0 };
 
 	XMStoreFloat4x4(&_camera.Projection,
 		DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(_camera.FieldOfView),
@@ -447,16 +452,6 @@ HRESULT Engine::InitialisePipeline()
 
 	hr = _device->CreateSamplerState(&bilinearSamplerDesc, &_bilinearSampler); FAIL_CHECK
     _deviceContext->PSSetSamplers(0, 1, &_bilinearSampler);
-
-	D3D11_MAPPED_SUBRESOURCE cameraData;
-	DirectX::XMMATRIX view = XMLoadFloat4x4(&_camera.View);
-	DirectX::XMMATRIX proj = XMLoadFloat4x4(&_camera.Projection);
-	_cbCameraData.View = XMMatrixTranspose(view);
-	_cbCameraData.Projection = XMMatrixTranspose(proj);
-	_cbCameraData.CameraPosition = {};
-	_deviceContext->Map(_cbCamera, 0, D3D11_MAP_WRITE_DISCARD, 0, &cameraData);
-	memcpy(cameraData.pData, &_cbCameraData, sizeof(CBCamera));
-	_deviceContext->Unmap(_cbCamera, 0);
 
 	return hr;
 }
