@@ -5,8 +5,10 @@
 #include <iostream>
 
 #include "GlobalDefs.h"
+#include "Mesh.h"
 
 #include "Structs/PerVertexBuffer.h"
+#include "Tools/Loader.h"
 
 LRESULT CALLBACK WndProc(const HWND hwnd, const UINT message, const WPARAM wParam, const LPARAM lParam)
 {
@@ -318,15 +320,19 @@ HRESULT Engine::InitialiseRuntimeData()
 
 	hr = _device->CreateBuffer(&indexBufferDesc, &subresourceIndexData, &_indexBuffer); FAIL_CHECK
 
+	
+	 Mesh* m = Loader::WavefrontOBJLoader("Assets//cube.obj", _device);
+
 	UINT stride {sizeof(PerVertexBuffer)};
 	UINT offset {0};
-	_deviceContext->IASetVertexBuffers(0, 1, &_perVertexBuffer, &stride, &offset);
+	_deviceContext->IASetVertexBuffers(0, 1, &m->VertexBuffer, &stride, &offset);
 #ifdef _INSTANCED_INPUT_LAYOUT
 	stride = sizeof(PerInstanceBuffer);
 	_deviceContext->IASetVertexBuffers(1, 1, &_perInstanceBuffer, &stride, &offset);
 #endif
 
-	_deviceContext->IASetIndexBuffer(_indexBuffer, DXGI_FORMAT_R32_UINT, offset);
+	_deviceContext->IASetIndexBuffer(m->IndexBuffer, DXGI_FORMAT_R32_UINT, offset);
+	//delete m;
 
 	_camera.FieldOfView = 90.0f;
 	_camera.At = {0.0f, 0.0f, 1.0f};

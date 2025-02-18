@@ -16,7 +16,7 @@
 #include "Structs/CBObject.h"
 #endif
 
-constexpr int OBJECTS_TO_RENDER = 500000;
+constexpr int OBJECTS_TO_RENDER = 50000;
 constexpr int RESOLUTION_X      = 1280;
 constexpr int RESOLUTION_Y      = 720;
 
