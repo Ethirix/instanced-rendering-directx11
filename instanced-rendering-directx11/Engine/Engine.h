@@ -6,6 +6,7 @@
 #include <dxgi1_2.h>
 
 #include "Camera.h"
+#include "Mesh.h"
 #include "RenderObject.h"
 
 #include "Structs/CBCamera.h"
@@ -16,9 +17,11 @@
 #include "Structs/CBObject.h"
 #endif
 
-constexpr int OBJECTS_TO_RENDER = 50000;
-constexpr int RESOLUTION_X      = 1280;
-constexpr int RESOLUTION_Y      = 720;
+constexpr unsigned OBJECTS_TO_RENDER = 50000;
+constexpr unsigned OBJECTS_WIDTH_COUNT = 128;
+constexpr float OBJECTS_UNIT_SIZE =  2;
+constexpr unsigned RESOLUTION_X = 1280;
+constexpr unsigned RESOLUTION_Y = 720;
 
 class Engine
 {
@@ -46,8 +49,11 @@ private:
 	HWND _hWnd{};
 
 	RenderObject* _objects = nullptr;
+	Mesh* _meshes[3] = {};
 #if defined(_INSTANCED_RENDERER)
-	PerInstanceBuffer* _worldData = nullptr;
+	PerInstanceBuffer* _lod0World = nullptr;
+	PerInstanceBuffer* _lod1World = nullptr;
+	PerInstanceBuffer* _lod2World = nullptr;
 #endif
 	Camera _camera{};
 
