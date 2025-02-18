@@ -118,42 +118,40 @@ public:
 			}
 		}
 
-		PerVertexBuffer* vertices = new PerVertexBuffer[faces.size()];
-		size_t verticesCount = faces.size();
+		mesh->Vertices = new PerVertexBuffer[faces.size()];
+		mesh->VerticesCount = faces.size();
 		{
 			unsigned i = 0;
 			for (const VertexIndices& vertex : orderedFaces)
 			{
-				vertices[i].Position = positions[vertex.Position];
-				vertices[i].Normal = normals[vertex.Normal];
-				vertices[i].Colour = colours[vertex.Position];
+				mesh->Vertices[i].Position = positions[vertex.Position];
+				mesh->Vertices[i].Normal = normals[vertex.Normal];
+				mesh->Vertices[i].Colour = colours[vertex.Position];
 
 				i++;
 			}
 		}
-		UINT* index = new UINT[indices.size()];
-		size_t indexCount = indices.size();
+		mesh->Indices = new UINT[indices.size()];
+		mesh->IndicesCount = indices.size();
 		for (unsigned i = 0; i < indices.size(); ++i)
-			index[i] = indices[i];
+			mesh->Indices[i] = indices[i];
 
 		D3D11_BUFFER_DESC vertexBufferDesc = {};
-		vertexBufferDesc.ByteWidth = sizeof(PerVertexBuffer) * verticesCount;
+		vertexBufferDesc.ByteWidth = sizeof(PerVertexBuffer) * mesh->VerticesCount;
 		vertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
 		vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 
-		D3D11_SUBRESOURCE_DATA subresourceVertexData = { vertices };
-		//delete [] vertices;
+		D3D11_SUBRESOURCE_DATA subresourceVertexData = { mesh->Vertices };
 
 		HRESULT hr = device->CreateBuffer(&vertexBufferDesc, &subresourceVertexData, &mesh->VertexBuffer);
 		assert(SUCCEEDED(hr));
 
 		D3D11_BUFFER_DESC indexBufferDesc = {};
-		indexBufferDesc.ByteWidth = sizeof(UINT) * indexCount;
+		indexBufferDesc.ByteWidth = sizeof(UINT) * mesh->IndicesCount;
 		indexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
 		indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 
-		D3D11_SUBRESOURCE_DATA subresourceIndexData = { index };
-		//delete [] index;
+		D3D11_SUBRESOURCE_DATA subresourceIndexData = { mesh->Indices };
 
 		hr = device->CreateBuffer(&indexBufferDesc, &subresourceIndexData, &mesh->IndexBuffer);
 		assert(SUCCEEDED(hr));
