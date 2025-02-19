@@ -113,8 +113,10 @@
     </Link>
     <PostBuildEvent>
       <Command>MKDIR "$(OutputPath)Engine\Shaders"
+MKDIR "$(OutputPath)Assets"
 
-(ROBOCOPY "$(ProjectDir)Engine\Shaders" "$(OutputPath)Engine\Shaders" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0</Command>
+(ROBOCOPY "$(ProjectDir)Engine\Shaders" "$(OutputPath)Engine\Shaders" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0
+(ROBOCOPY "$(ProjectDir)Assets" "$(OutputPath)Assets" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug Instanced|x64'">
@@ -134,8 +136,10 @@
     </Link>
     <PostBuildEvent>
       <Command>MKDIR "$(OutputPath)Engine\Shaders"
+MKDIR "$(OutputPath)Assets"
 
-(ROBOCOPY "$(ProjectDir)Engine\Shaders" "$(OutputPath)Engine\Shaders" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0</Command>
+(ROBOCOPY "$(ProjectDir)Engine\Shaders" "$(OutputPath)Engine\Shaders" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0
+(ROBOCOPY "$(ProjectDir)Assets" "$(OutputPath)Assets" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug Instanced Input Layout|x64'">
@@ -155,8 +159,10 @@
     </Link>
     <PostBuildEvent>
       <Command>MKDIR "$(OutputPath)Engine\Shaders"
+MKDIR "$(OutputPath)Assets"
 
-(ROBOCOPY "$(ProjectDir)Engine\Shaders" "$(OutputPath)Engine\Shaders" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0</Command>
+(ROBOCOPY "$(ProjectDir)Engine\Shaders" "$(OutputPath)Engine\Shaders" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0
+(ROBOCOPY "$(ProjectDir)Assets" "$(OutputPath)Assets" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -179,8 +185,10 @@
     </Link>
     <PostBuildEvent>
       <Command>MKDIR "$(OutputPath)Engine\Shaders"
+MKDIR "$(OutputPath)Assets"
 
-(ROBOCOPY "$(ProjectDir)Engine\Shaders" "$(OutputPath)Engine\Shaders" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0</Command>
+(ROBOCOPY "$(ProjectDir)Engine\Shaders" "$(OutputPath)Engine\Shaders" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0
+(ROBOCOPY "$(ProjectDir)Assets" "$(OutputPath)Assets" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release Instanced|x64'">
@@ -203,8 +211,10 @@
     </Link>
     <PostBuildEvent>
       <Command>MKDIR "$(OutputPath)Engine\Shaders"
+MKDIR "$(OutputPath)Assets"
 
-(ROBOCOPY "$(ProjectDir)Engine\Shaders" "$(OutputPath)Engine\Shaders" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0</Command>
+(ROBOCOPY "$(ProjectDir)Engine\Shaders" "$(OutputPath)Engine\Shaders" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0
+(ROBOCOPY "$(ProjectDir)Assets" "$(OutputPath)Assets" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release Instanced Input Layout|x64'">
@@ -227,8 +237,10 @@
     </Link>
     <PostBuildEvent>
       <Command>MKDIR "$(OutputPath)Engine\Shaders"
+MKDIR "$(OutputPath)Assets"
 
-(ROBOCOPY "$(ProjectDir)Engine\Shaders" "$(OutputPath)Engine\Shaders" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0</Command>
+(ROBOCOPY "$(ProjectDir)Engine\Shaders" "$(OutputPath)Engine\Shaders" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0
+(ROBOCOPY "$(ProjectDir)Assets" "$(OutputPath)Assets" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -236,6 +248,15 @@
     <ClCompile Include="Engine\RenderObject.cpp" />
     <ClCompile Include="Engine\Transform.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Optick\optick_capi.cpp" />
+    <ClCompile Include="Optick\optick_core.cpp" />
+    <ClCompile Include="Optick\optick_gpu.cpp" />
+    <ClCompile Include="Optick\optick_gpu.d3d12.cpp" />
+    <ClCompile Include="Optick\optick_gpu.vulkan.cpp" />
+    <ClCompile Include="Optick\optick_message.cpp" />
+    <ClCompile Include="Optick\optick_miniz.cpp" />
+    <ClCompile Include="Optick\optick_serialization.cpp" />
+    <ClCompile Include="Optick\optick_server.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Camera.h" />
@@ -250,6 +271,22 @@
     <ClInclude Include="Engine\Structs\PerVertexBuffer.h" />
     <ClInclude Include="Engine\Tools\Loader.h" />
     <ClInclude Include="Engine\Transform.h" />
+    <ClInclude Include="Optick\optick.config.h" />
+    <ClInclude Include="Optick\optick.h" />
+    <ClInclude Include="Optick\optick_capi.h" />
+    <ClInclude Include="Optick\optick_common.h" />
+    <ClInclude Include="Optick\optick_core.freebsd.h" />
+    <ClInclude Include="Optick\optick_core.h" />
+    <ClInclude Include="Optick\optick_core.linux.h" />
+    <ClInclude Include="Optick\optick_core.macos.h" />
+    <ClInclude Include="Optick\optick_core.platform.h" />
+    <ClInclude Include="Optick\optick_core.win.h" />
+    <ClInclude Include="Optick\optick_gpu.h" />
+    <ClInclude Include="Optick\optick_memory.h" />
+    <ClInclude Include="Optick\optick_message.h" />
+    <ClInclude Include="Optick\optick_miniz.h" />
+    <ClInclude Include="Optick\optick_serialization.h" />
+    <ClInclude Include="Optick\optick_server.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Engine\Shaders\Buffers\SRVInstanceData.hlsli" />

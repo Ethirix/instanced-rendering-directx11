@@ -6,6 +6,8 @@
 
 #include "GlobalDefs.h"
 
+#include "../Optick/optick.h"
+
 #include "Structs/PerVertexBuffer.h"
 #include "Tools/Loader.h"
 
@@ -85,6 +87,7 @@ Engine::~Engine()
 
 HRESULT Engine::Update()
 {
+	OPTICK_EVENT();
 #pragma region DeltaTime
 	auto timePoint = std::chrono::high_resolution_clock::now();
 	double deltaTime = std::chrono::duration_cast
@@ -98,6 +101,13 @@ HRESULT Engine::Update()
 		return S_OK;
 #pragma endregion
 
+#if USE_OPTICK && 0
+			static double frameTime = 0;
+			frameTime += deltaTime;
+			if (frameTime >= 5)
+				PostQuitMessage(0);
+#endif
+
 	//Update Code
 
 	_camera.Update(deltaTime * 5.0);
@@ -109,6 +119,7 @@ HRESULT Engine::Update()
 
 HRESULT Engine::Draw()
 {
+	OPTICK_EVENT();
 	float backgroundColour[4] = { 0.025f, 0.025f, 0.025f, 1.0f };
 	_deviceContext->OMSetRenderTargets(1, &_renderTarget, _depthStencilView);
 	_deviceContext->ClearRenderTargetView(_renderTarget, backgroundColour);
@@ -145,6 +156,7 @@ HRESULT Engine::Draw()
 		}
 	}
 
+	OPTICK_GPU_EVENT("GPU::Draw");
 #if !defined(_INSTANCED_INPUT_LAYOUT)
 	D3D11_MAPPED_SUBRESOURCE instanceData;
 	HRESULT hr = _deviceContext->Map(_srvBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &instanceData); FAIL_CHECK
@@ -196,6 +208,7 @@ HRESULT Engine::Draw()
 
 #else
 	D3D11_MAPPED_SUBRESOURCE objectData;
+	OPTICK_GPU_EVENT("GPU::Draw");
 	for (unsigned i = 0; i < OBJECTS_TO_RENDER; i++)
 	{
 		RenderObject* ro = &_objects[i];
@@ -215,11 +228,13 @@ HRESULT Engine::Draw()
 
 #endif
 
+	OPTICK_GPU_FLIP(_dxgiSwapChain);
 	return _dxgiSwapChain->Present(0, 0);
 }
 
 HRESULT Engine::Initialise(HINSTANCE hInstance)
 {
+	OPTICK_EVENT();
 	HRESULT hr = CreateWindowHandle(hInstance); FAIL_CHECK
 	hr = CreateD3DDevice(); FAIL_CHECK
 	hr = CreateSwapChain(); FAIL_CHECK
@@ -235,6 +250,7 @@ HRESULT Engine::Initialise(HINSTANCE hInstance)
 
 HRESULT Engine::CreateWindowHandle(HINSTANCE hInstance)
 {
+	OPTICK_EVENT();
 	const wchar_t* windowName = L"Dissertation Artefact";
 
 	WNDCLASSW wndClass{};
@@ -252,6 +268,7 @@ HRESULT Engine::CreateWindowHandle(HINSTANCE hInstance)
 
 HRESULT Engine::CreateD3DDevice()
 {
+	OPTICK_EVENT();
 	HRESULT hr = S_OK;
 
 	D3D_FEATURE_LEVEL featureLevels[] = {
@@ -296,6 +313,7 @@ HRESULT Engine::CreateD3DDevice()
 
 HRESULT Engine::CreateSwapChain()
 {
+	OPTICK_EVENT();
 	DXGI_SWAP_CHAIN_DESC1 swapChainDesc;
 	swapChainDesc.Width = 0; // Defer to WindowWidth
     swapChainDesc.Height = 0; // Defer to WindowHeight
@@ -315,12 +333,13 @@ HRESULT Engine::CreateSwapChain()
 
 HRESULT Engine::InitialiseRuntimeData()
 {
+	OPTICK_EVENT();
 	HRESULT hr = S_OK;
 	srand(time(nullptr));
 
-	_meshes[0] = Loader::WavefrontOBJLoader("Assets/cube0.obj", _device);
-	_meshes[1] = Loader::WavefrontOBJLoader("Assets/cube1.obj", _device);
-	_meshes[2] = Loader::WavefrontOBJLoader("Assets/cube2.obj", _device);
+	_meshes[0] = Loader::WavefrontOBJLoader("Assets/tree_lod0.obj", _device);
+	_meshes[1] = Loader::WavefrontOBJLoader("Assets/tree_lod1.obj", _device);
+	_meshes[2] = Loader::WavefrontOBJLoader("Assets/tree_lod2.obj", _device);
 
 	_objects = new RenderObject[OBJECTS_TO_RENDER];
 
@@ -360,7 +379,7 @@ HRESULT Engine::InitialiseRuntimeData()
 #endif
 
 	_camera.FieldOfView = 90.0f;
-	_camera.At = {0.0f, -0.5f, 1.0f};
+	_camera.At = {0.0f, 0.0f, 1.0f};
 	_camera.Up = {0.0f, 1.0f, 0.0f};
 
 	_camera.NearDepth = 0.1f;
@@ -379,6 +398,7 @@ HRESULT Engine::InitialiseRuntimeData()
 
 HRESULT Engine::CreateFrameBuffer()
 {
+	OPTICK_EVENT();
 	ID3D11Texture2D* frameBuffer = nullptr;
 	HRESULT hr = _dxgiSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&frameBuffer)); FAIL_CHECK
 
@@ -403,6 +423,7 @@ HRESULT Engine::CreateFrameBuffer()
 
 HRESULT Engine::InitialiseShaders()
 {
+	OPTICK_EVENT();
 	LPCWSTR vertexPath;
 	LPCWSTR pixelPath = L"Engine/Shaders/PS.hlsl";
 
@@ -425,6 +446,7 @@ HRESULT Engine::InitialiseShaders()
 
 HRESULT Engine::InitialisePipeline()
 {
+	OPTICK_EVENT();
 	_deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	_deviceContext->IASetInputLayout(_inputLayout);
 
@@ -486,6 +508,7 @@ HRESULT Engine::InitialisePipeline()
 
 HRESULT Engine::CreateVertexShaderLayout(ID3D11Device* device, ID3D11InputLayout** inputLayout, ID3DBlob* vsBlob)
 {
+	OPTICK_EVENT();
 	D3D11_INPUT_ELEMENT_DESC vsInputLayout[] =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
@@ -514,6 +537,7 @@ HRESULT Engine::CreateVertexShaderLayout(ID3D11Device* device, ID3D11InputLayout
 
 ID3D11VertexShader* Engine::CompileVertexShader(HWND hWnd, ID3D11Device* device, ID3D11InputLayout** inputLayout, LPCWSTR path)
 {
+	OPTICK_EVENT();
 	ID3D11VertexShader* vs = nullptr;
 	ID3DBlob* errorBlob;
 	ID3DBlob* vsBlob;
@@ -568,6 +592,7 @@ ID3D11VertexShader* Engine::CompileVertexShader(HWND hWnd, ID3D11Device* device,
 
 ID3D11PixelShader* Engine::CompilePixelShader(HWND hWnd, ID3D11Device* device, LPCWSTR path)
 {
+	OPTICK_EVENT();
 	ID3D11PixelShader* ps = nullptr;
 	ID3DBlob* errorBlob;
 	ID3DBlob* psBlob;
