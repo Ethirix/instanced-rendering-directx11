@@ -17,9 +17,9 @@
 #include "Structs/CBObject.h"
 #endif
 
-constexpr unsigned OBJECTS_TO_RENDER = 50000;
+constexpr unsigned OBJECTS_TO_RENDER = 500000;
 constexpr unsigned OBJECTS_WIDTH_COUNT = 128;
-constexpr float OBJECTS_UNIT_SIZE =  2;
+constexpr float OBJECTS_UNIT_SIZE =  16;
 constexpr unsigned RESOLUTION_X = 1280;
 constexpr unsigned RESOLUTION_Y = 720;
 
