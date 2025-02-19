@@ -5,7 +5,6 @@
 #include <iostream>
 
 #include "GlobalDefs.h"
-#include "Mesh.h"
 
 #include "Structs/PerVertexBuffer.h"
 #include "Tools/Loader.h"
@@ -65,15 +64,23 @@ Engine::~Engine()
 
 #if !defined(_INSTANCED_RENDERER)
 	RELEASE_RESOURCE(_cbObject)
+#elif defined(_INSTANCED_RENDERER)
+		delete [] _lod0World;
+		delete [] _lod1World;
+		delete [] _lod2World;
 #elif defined(_INSTANCED_RENDERER) && !defined(_INSTANCED_INPUT_LAYOUT)
 	RELEASE_RESOURCE(_srvBuffer)
 	RELEASE_RESOURCE(_srvInstance)
 #elif defined(_INSTANCED_RENDERER) && defined(_INSTANCED_INPUT_LAYOUT)
 	RELEASE_RESOURCE(_perInstanceBuffer);
-	delete [] _worldData;
 #endif
 
 	delete [] _objects;
+
+	for (Mesh* mesh : _meshes)
+	{
+		delete mesh;
+	}
 }
 
 HRESULT Engine::Update()
@@ -94,6 +101,8 @@ HRESULT Engine::Update()
 	//Update Code
 
 	_camera.Update(deltaTime * 5.0);
+	for (unsigned i = 0; i < OBJECTS_TO_RENDER; i++)
+		_objects[i].Update(_camera.Eye);
 
 	return S_OK;
 }
@@ -114,35 +123,94 @@ HRESULT Engine::Draw()
 	_deviceContext->Unmap(_cbCamera, 0);
 
 #if defined(_INSTANCED_RENDERER)
+	unsigned lod0Count = 0;
+	unsigned lod1Count = 0;
+	unsigned lod2Count = 0;
 	for (unsigned i = 0; i < OBJECTS_TO_RENDER; i++)
 	{
-		_worldData[i].World = _objects[i].Transform.GetWorldMatrix();
+		switch (RenderObject* ro = &_objects[i]; ro->Switch)
+		{
+		case 0:
+			_lod0World[lod0Count].World = ro->Transform.GetWorldMatrix();
+			lod0Count++;
+			break;
+		case 1:
+			_lod1World[lod1Count].World = ro->Transform.GetWorldMatrix();
+			lod1Count++;
+			break;
+		default:
+			_lod2World[lod2Count].World = ro->Transform.GetWorldMatrix();
+			lod2Count++;
+			break;
+		}
 	}
 
 #if !defined(_INSTANCED_INPUT_LAYOUT)
 	D3D11_MAPPED_SUBRESOURCE instanceData;
 	HRESULT hr = _deviceContext->Map(_srvBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &instanceData); FAIL_CHECK
-	memcpy(instanceData.pData, _worldData, sizeof(PerInstanceBuffer) * OBJECTS_TO_RENDER);
+	memcpy(instanceData.pData, _lod0World, sizeof(PerInstanceBuffer) * lod0Count);
 	_deviceContext->Unmap(_srvBuffer, 0);
 
 #else
 	D3D11_MAPPED_SUBRESOURCE instanceData;
 	HRESULT hr = _deviceContext->Map(_perInstanceBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &instanceData); FAIL_CHECK
-	memcpy(instanceData.pData, _worldData, sizeof(PerInstanceBuffer) * OBJECTS_TO_RENDER);
+	memcpy(instanceData.pData, _lod0World, sizeof(PerInstanceBuffer) * lod0Count);
 	_deviceContext->Unmap(_perInstanceBuffer, 0);
 #endif
+	Mesh* m = _meshes[0];
+	UINT stride = sizeof(PerVertexBuffer);
+	UINT offset = 0;
+	_deviceContext->IASetVertexBuffers(0, 1, &m->VertexBuffer, &stride, &offset);
+	_deviceContext->IASetIndexBuffer(m->IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+	_deviceContext->DrawIndexedInstanced(m->IndicesCount, lod0Count, 0, 0, 0);
 
-	_deviceContext->DrawIndexedInstanced(36, OBJECTS_TO_RENDER, 0, 0, 0);
+#if !defined(_INSTANCED_INPUT_LAYOUT)
+	hr = _deviceContext->Map(_srvBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &instanceData); FAIL_CHECK
+	memcpy(instanceData.pData, _lod1World, sizeof(PerInstanceBuffer) * lod1Count);
+	_deviceContext->Unmap(_srvBuffer, 0);
+
+#else
+	hr = _deviceContext->Map(_perInstanceBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &instanceData); FAIL_CHECK
+	memcpy(instanceData.pData, _lod1World, sizeof(PerInstanceBuffer) * lod1Count);
+	_deviceContext->Unmap(_perInstanceBuffer, 0);
+#endif
+	m = _meshes[1];
+	_deviceContext->IASetVertexBuffers(0, 1, &m->VertexBuffer, &stride, &offset);
+	_deviceContext->IASetIndexBuffer(m->IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+	_deviceContext->DrawIndexedInstanced(m->IndicesCount, lod1Count, 0, 0, 0);
+
+#if !defined(_INSTANCED_INPUT_LAYOUT)
+	hr = _deviceContext->Map(_srvBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &instanceData); FAIL_CHECK
+	memcpy(instanceData.pData, _lod2World, sizeof(PerInstanceBuffer) * lod2Count);
+	_deviceContext->Unmap(_srvBuffer, 0);
+
+#else
+	hr = _deviceContext->Map(_perInstanceBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &instanceData); FAIL_CHECK
+	memcpy(instanceData.pData, _lod2World, sizeof(PerInstanceBuffer) * lod2Count);
+	_deviceContext->Unmap(_perInstanceBuffer, 0);
+#endif
+	m = _meshes[2];
+	_deviceContext->IASetVertexBuffers(0, 1, &m->VertexBuffer, &stride, &offset);
+	_deviceContext->IASetIndexBuffer(m->IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+	_deviceContext->DrawIndexedInstanced(m->IndicesCount, lod2Count, 0, 0, 0);
+
 #else
 	D3D11_MAPPED_SUBRESOURCE objectData;
 	for (unsigned i = 0; i < OBJECTS_TO_RENDER; i++)
 	{
-		_cbObjectData.World = _objects[i].Transform.GetWorldMatrix();
+		RenderObject* ro = &_objects[i];
+		Mesh* m = ro->LODMeshes[ro->Switch];
+		_cbObjectData.World = ro->Transform.GetWorldMatrix();
 		HRESULT hr = _deviceContext->Map(_cbObject, 0, D3D11_MAP_WRITE_DISCARD, 0, &objectData); FAIL_CHECK
 		memcpy(objectData.pData, &_cbObjectData, sizeof(CBObject));
 		_deviceContext->Unmap(_cbObject, 0);
 
-		_deviceContext->DrawIndexed(36, 0, 0);
+		UINT stride = sizeof(PerVertexBuffer);
+		UINT offset = 0;
+		_deviceContext->IASetVertexBuffers(0, 1, &m->VertexBuffer, &stride, &offset);
+		_deviceContext->IASetIndexBuffer(m->IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
+		_deviceContext->DrawIndexed(m->IndicesCount, 0, 0);
 	}
 
 #endif
@@ -247,43 +315,33 @@ HRESULT Engine::CreateSwapChain()
 
 HRESULT Engine::InitialiseRuntimeData()
 {
+	HRESULT hr = S_OK;
 	srand(time(nullptr));
+
+	_meshes[0] = Loader::WavefrontOBJLoader("Assets/cube0.obj", _device);
+	_meshes[1] = Loader::WavefrontOBJLoader("Assets/cube1.obj", _device);
+	_meshes[2] = Loader::WavefrontOBJLoader("Assets/cube2.obj", _device);
+
 	_objects = new RenderObject[OBJECTS_TO_RENDER];
+
 	for (unsigned i = 0; i < OBJECTS_TO_RENDER; i++)
 	{
 		RenderObject* ro = new RenderObject();
-		ro->Transform.SetPosition({RAND(-225, 225), RAND(-115, 125), RAND(128, 256)});
+		ro->Transform.SetPosition({
+			(i % OBJECTS_WIDTH_COUNT * OBJECTS_UNIT_SIZE) - (OBJECTS_WIDTH_COUNT * OBJECTS_UNIT_SIZE / 2) + OBJECTS_UNIT_SIZE / 2.0f, 0,
+			(i / OBJECTS_WIDTH_COUNT * OBJECTS_UNIT_SIZE)
+		});
+		for (unsigned j = 0; j < 3; j++)
+			ro->LODMeshes[j] = _meshes[j];
 		_objects[i] = *ro;
 	}
 
-	PerVertexBuffer cubeVertices[]
-	{
-		{{ -1.0f,  1.0f,  1.0f }, { -0.5774,  0.5774,  0.5774, }, { 1.0f, 1.0f, 1.0f }},
-		{{ -1.0f, -1.0f,  1.0f }, { -0.5774, -0.5774, -0.5774, }, { 0.5f, 1.0f, 1.0f }},
-		{{ -1.0f,  1.0f, -1.0f }, { -0.5774, -0.5774,  0.5774, }, { 0.0f, 1.0f, 1.0f }},
-		{{ -1.0f, -1.0f, -1.0f }, { -0.5774,  0.5774, -0.5774, }, { 0.0f, 0.5f, 1.0f }},
-		{{  1.0f,  1.0f,  1.0f }, {  0.5774, -0.5774, -0.5774, }, { 0.0f, 0.0f, 1.0f }},
-		{{  1.0f, -1.0f,  1.0f }, {  0.5774,  0.5774, -0.5774, }, { 0.0f, 0.0f, 0.5f }},
-		{{  1.0f,  1.0f, -1.0f }, {  0.5774, -0.5774,  0.5774, }, { 0.0f, 0.0f, 0.0f }},
-		{{  1.0f, -1.0f, -1.0f }, {  0.5774,  0.5774,  0.5774, }, { 0.5f, 0.0f, 0.0f }}
-	};
-
-	D3D11_BUFFER_DESC perVertexBufferDesc = {};
-	perVertexBufferDesc.ByteWidth = 8 * sizeof(PerVertexBuffer);
-	perVertexBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-	perVertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	perVertexBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-
-	D3D11_SUBRESOURCE_DATA subresourceVertexData = { cubeVertices };
-	HRESULT hr = _device->CreateBuffer(&perVertexBufferDesc, &subresourceVertexData, &_perVertexBuffer); FAIL_CHECK
-
-#if defined(_INSTANCED_RENDERER)
-	_worldData = new PerInstanceBuffer[OBJECTS_TO_RENDER];
-	for (unsigned i = 0; i < OBJECTS_TO_RENDER; i++)
-	{
-		_worldData[i].World = _objects[i].Transform.GetWorldMatrix();
-	}
+#ifdef _INSTANCED_RENDERER
+		_lod0World = new PerInstanceBuffer[OBJECTS_TO_RENDER];
+		_lod1World = new PerInstanceBuffer[OBJECTS_TO_RENDER];
+		_lod2World = new PerInstanceBuffer[OBJECTS_TO_RENDER];
 #endif
+
 #if defined(_INSTANCED_RENDERER) && defined(_INSTANCED_INPUT_LAYOUT)
 	D3D11_BUFFER_DESC perInstanceBufferDesc = {};
 	perInstanceBufferDesc.ByteWidth         = OBJECTS_TO_RENDER * sizeof(PerInstanceBuffer);
@@ -291,57 +349,24 @@ HRESULT Engine::InitialiseRuntimeData()
 	perInstanceBufferDesc.BindFlags         = D3D11_BIND_VERTEX_BUFFER;
 	perInstanceBufferDesc.CPUAccessFlags    = D3D11_CPU_ACCESS_WRITE;
 
-	D3D11_SUBRESOURCE_DATA perInstancedBufferData = { _worldData };
-	hr = _device->CreateBuffer(&perInstanceBufferDesc, &perInstancedBufferData, &_perInstanceBuffer); FAIL_CHECK
+	hr = _device->CreateBuffer(&perInstanceBufferDesc, nullptr, &_perInstanceBuffer); FAIL_CHECK
 #endif
 
-	int cubeIndex[]
-	{
-		4, 2, 0,
-		2, 7, 3,
-		6, 5, 7,
-		1, 7, 5,
-		0, 3, 1,
-		4, 1, 5,
-		4, 6, 2,
-		2, 6, 7,
-		6, 4, 5,
-		1, 3, 7,
-		0, 2, 3,
-		4, 0, 1
-	};
 
-	D3D11_BUFFER_DESC indexBufferDesc = {};
-	indexBufferDesc.ByteWidth = 36 * sizeof(int);
-	indexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
-	indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-
-	D3D11_SUBRESOURCE_DATA subresourceIndexData = { cubeIndex };
-
-	hr = _device->CreateBuffer(&indexBufferDesc, &subresourceIndexData, &_indexBuffer); FAIL_CHECK
-
-	
-	 Mesh* m = Loader::WavefrontOBJLoader("Assets//cube.obj", _device);
-
-	UINT stride {sizeof(PerVertexBuffer)};
-	UINT offset {0};
-	_deviceContext->IASetVertexBuffers(0, 1, &m->VertexBuffer, &stride, &offset);
 #ifdef _INSTANCED_INPUT_LAYOUT
-	stride = sizeof(PerInstanceBuffer);
+	UINT stride = sizeof(PerInstanceBuffer);
+	UINT offset = 0;
 	_deviceContext->IASetVertexBuffers(1, 1, &_perInstanceBuffer, &stride, &offset);
 #endif
 
-	_deviceContext->IASetIndexBuffer(m->IndexBuffer, DXGI_FORMAT_R32_UINT, offset);
-	//delete m;
-
 	_camera.FieldOfView = 90.0f;
-	_camera.At = {0.0f, 0.0f, 1.0f};
+	_camera.At = {0.0f, -0.5f, 1.0f};
 	_camera.Up = {0.0f, 1.0f, 0.0f};
 
 	_camera.NearDepth = 0.1f;
 	_camera.FarDepth = 1000.0f;
 
-	_camera.Eye = { 0, 10, 0 };
+	_camera.Eye = { 0, 10, -20 };
 
 	XMStoreFloat4x4(&_camera.Projection,
 		DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(_camera.FieldOfView),
@@ -434,10 +459,7 @@ HRESULT Engine::InitialisePipeline()
 	bufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
 	bufferDesc.StructureByteStride = sizeof(PerInstanceBuffer);
 
-	D3D11_SUBRESOURCE_DATA srvData{};
-	srvData.pSysMem = _worldData;
-
-	hr = _device->CreateBuffer(&bufferDesc, &srvData, &_srvBuffer); FAIL_CHECK
+	hr = _device->CreateBuffer(&bufferDesc, nullptr, &_srvBuffer); FAIL_CHECK
 
 	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc{};
 	srvDesc.Format = DXGI_FORMAT_UNKNOWN;

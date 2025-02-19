@@ -6,7 +6,7 @@ float4 PS_Main(VSOut input) : SV_TARGET
 {
 	float3 ambientOut = float3(0.1f, 0.1f, 0.1f);
 
-    float3 lightDir = normalize(-float3(-1, -1, -1));
+    float3 lightDir = normalize(-float3(1, -3, 1));
     float diffuseIntensity = saturate(dot(input.Normal, lightDir));
     float3 diffuseOut = diffuseIntensity * float3(1.0f, 1.0f, 1.0f);
 
