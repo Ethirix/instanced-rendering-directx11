@@ -115,7 +115,7 @@
       <Command>MKDIR "$(OutputPath)Engine\Shaders"
 MKDIR "$(OutputPath)Assets"
 
-(ROBOCOPY "$(ProjectDir)Engine\Shaders" "$(OutputPath)Engine\Shaders" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0
+(ROBOCOPY "$(ProjectDir)Engine\Shaders" "$(OutputPath)Engine\Shaders" /E /MIR /DCOPY:DA /COPY:DAT)
 (ROBOCOPY "$(ProjectDir)Assets" "$(OutputPath)Assets" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -138,7 +138,7 @@ MKDIR "$(OutputPath)Assets"
       <Command>MKDIR "$(OutputPath)Engine\Shaders"
 MKDIR "$(OutputPath)Assets"
 
-(ROBOCOPY "$(ProjectDir)Engine\Shaders" "$(OutputPath)Engine\Shaders" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0
+(ROBOCOPY "$(ProjectDir)Engine\Shaders" "$(OutputPath)Engine\Shaders" /E /MIR /DCOPY:DA /COPY:DAT)
 (ROBOCOPY "$(ProjectDir)Assets" "$(OutputPath)Assets" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -161,7 +161,7 @@ MKDIR "$(OutputPath)Assets"
       <Command>MKDIR "$(OutputPath)Engine\Shaders"
 MKDIR "$(OutputPath)Assets"
 
-(ROBOCOPY "$(ProjectDir)Engine\Shaders" "$(OutputPath)Engine\Shaders" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0
+(ROBOCOPY "$(ProjectDir)Engine\Shaders" "$(OutputPath)Engine\Shaders" /E /MIR /DCOPY:DA /COPY:DAT)
 (ROBOCOPY "$(ProjectDir)Assets" "$(OutputPath)Assets" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -187,7 +187,7 @@ MKDIR "$(OutputPath)Assets"
       <Command>MKDIR "$(OutputPath)Engine\Shaders"
 MKDIR "$(OutputPath)Assets"
 
-(ROBOCOPY "$(ProjectDir)Engine\Shaders" "$(OutputPath)Engine\Shaders" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0
+(ROBOCOPY "$(ProjectDir)Engine\Shaders" "$(OutputPath)Engine\Shaders" /E /MIR /DCOPY:DA /COPY:DAT)
 (ROBOCOPY "$(ProjectDir)Assets" "$(OutputPath)Assets" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -213,7 +213,7 @@ MKDIR "$(OutputPath)Assets"
       <Command>MKDIR "$(OutputPath)Engine\Shaders"
 MKDIR "$(OutputPath)Assets"
 
-(ROBOCOPY "$(ProjectDir)Engine\Shaders" "$(OutputPath)Engine\Shaders" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0
+(ROBOCOPY "$(ProjectDir)Engine\Shaders" "$(OutputPath)Engine\Shaders" /E /MIR /DCOPY:DA /COPY:DAT)
 (ROBOCOPY "$(ProjectDir)Assets" "$(OutputPath)Assets" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -239,7 +239,7 @@ MKDIR "$(OutputPath)Assets"
       <Command>MKDIR "$(OutputPath)Engine\Shaders"
 MKDIR "$(OutputPath)Assets"
 
-(ROBOCOPY "$(ProjectDir)Engine\Shaders" "$(OutputPath)Engine\Shaders" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0
+(ROBOCOPY "$(ProjectDir)Engine\Shaders" "$(OutputPath)Engine\Shaders" /E /MIR /DCOPY:DA /COPY:DAT)
 (ROBOCOPY "$(ProjectDir)Assets" "$(OutputPath)Assets" /E /MIR /DCOPY:DA /COPY:DAT) ^&amp; IF %ERRORLEVEL% LEQ 1 EXIT 0</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
