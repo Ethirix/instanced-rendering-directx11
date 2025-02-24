@@ -209,21 +209,26 @@ HRESULT Engine::Draw()
 #else
 	D3D11_MAPPED_SUBRESOURCE objectData;
 	OPTICK_GPU_EVENT("GPU::Draw");
-	for (unsigned i = 0; i < OBJECTS_TO_RENDER; i++)
+	for (unsigned sw = 0; sw < 3; sw++)
 	{
-		RenderObject* ro = &_objects[i];
-		Mesh* m = ro->LODMeshes[ro->Switch];
-		_cbObjectData.World = ro->Transform.GetWorldMatrix();
-		HRESULT hr = _deviceContext->Map(_cbObject, 0, D3D11_MAP_WRITE_DISCARD, 0, &objectData); FAIL_CHECK
-		memcpy(objectData.pData, &_cbObjectData, sizeof(CBObject));
-		_deviceContext->Unmap(_cbObject, 0);
+		for (unsigned i = 0; i < OBJECTS_TO_RENDER; i++)
+		{
+			RenderObject* ro = &_objects[i];
+			if (ro->Switch != sw)
+				continue;
+			Mesh* m = ro->LODMeshes[ro->Switch];
+			_cbObjectData.World = ro->Transform.GetWorldMatrix();
+			HRESULT hr = _deviceContext->Map(_cbObject, 0, D3D11_MAP_WRITE_DISCARD, 0, &objectData); FAIL_CHECK
+			memcpy(objectData.pData, &_cbObjectData, sizeof(CBObject));
+			_deviceContext->Unmap(_cbObject, 0);
 
-		UINT stride = sizeof(PerVertexBuffer);
-		UINT offset = 0;
-		_deviceContext->IASetVertexBuffers(0, 1, &m->VertexBuffer, &stride, &offset);
-		_deviceContext->IASetIndexBuffer(m->IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+			UINT stride = sizeof(PerVertexBuffer);
+			UINT offset = 0;
+			_deviceContext->IASetVertexBuffers(0, 1, &m->VertexBuffer, &stride, &offset);
+			_deviceContext->IASetIndexBuffer(m->IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 
-		_deviceContext->DrawIndexed(m->IndicesCount, 0, 0);
+			_deviceContext->DrawIndexed(m->IndicesCount, 0, 0);
+		}
 	}
 
 #endif
