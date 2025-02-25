@@ -17,11 +17,15 @@
 #include "Structs/CBObject.h"
 #endif
 
+// Major Settings
 constexpr unsigned OBJECTS_TO_RENDER = 500000;
 constexpr unsigned OBJECTS_WIDTH_COUNT = 128;
 constexpr float OBJECTS_UNIT_SIZE =  16;
 constexpr unsigned RESOLUTION_X = 1280;
 constexpr unsigned RESOLUTION_Y = 720;
+#define RENDER 1
+#define UPDATE 1
+#define BACKWARDS_RENDER 0
 
 class Engine
 {

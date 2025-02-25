@@ -109,10 +109,11 @@ HRESULT Engine::Update()
 #endif
 
 	//Update Code
-
+#if UPDATE
 	_camera.Update(deltaTime * 5.0);
 	for (unsigned i = 0; i < OBJECTS_TO_RENDER; i++)
 		_objects[i].Update(_camera.Eye);
+#endif
 
 	return S_OK;
 }
@@ -129,7 +130,7 @@ HRESULT Engine::Draw()
 	_cbCameraData.View = XMMatrixTranspose(XMLoadFloat4x4(&_camera.View));
 	_cbCameraData.Projection = XMMatrixTranspose(XMLoadFloat4x4(&_camera.Projection));
 	_cbCameraData.CameraPosition = {_camera.Eye.x, _camera.Eye.y, _camera.Eye.z, 1};
-	_deviceContext->Map(_cbCamera, 0, D3D11_MAP_WRITE_DISCARD, 0, &cameraData);
+	HRESULT hr = _deviceContext->Map(_cbCamera, 0, D3D11_MAP_WRITE_DISCARD, 0, &cameraData); FAIL_CHECK
 	memcpy(cameraData.pData, &_cbCameraData, sizeof(CBCamera));
 	_deviceContext->Unmap(_cbCamera, 0);
 
@@ -159,28 +160,42 @@ HRESULT Engine::Draw()
 	OPTICK_GPU_EVENT("GPU::Draw");
 #if !defined(_INSTANCED_INPUT_LAYOUT)
 	D3D11_MAPPED_SUBRESOURCE instanceData;
-	HRESULT hr = _deviceContext->Map(_srvBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &instanceData); FAIL_CHECK
+	hr = _deviceContext->Map(_srvBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &instanceData); FAIL_CHECK
+#if BACKWARDS_RENDER
+	memcpy(instanceData.pData, _lod2World, sizeof(PerInstanceBuffer) * lod2Count);
+#else
 	memcpy(instanceData.pData, _lod0World, sizeof(PerInstanceBuffer) * lod0Count);
+#endif
 	_deviceContext->Unmap(_srvBuffer, 0);
-
 #else
 	D3D11_MAPPED_SUBRESOURCE instanceData;
-	HRESULT hr = _deviceContext->Map(_perInstanceBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &instanceData); FAIL_CHECK
+	hr = _deviceContext->Map(_perInstanceBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &instanceData); FAIL_CHECK
+#if BACKWARDS_RENDER
+	memcpy(instanceData.pData, _lod2World, sizeof(PerInstanceBuffer) * lod2Count);
+#else
 	memcpy(instanceData.pData, _lod0World, sizeof(PerInstanceBuffer) * lod0Count);
+#endif
 	_deviceContext->Unmap(_perInstanceBuffer, 0);
 #endif
+
+#if BACKWARDS_RENDER
+	Mesh* m = _meshes[2];
+#else
 	Mesh* m = _meshes[0];
+#endif
 	UINT stride = sizeof(PerVertexBuffer);
 	UINT offset = 0;
 	_deviceContext->IASetVertexBuffers(0, 1, &m->VertexBuffer, &stride, &offset);
 	_deviceContext->IASetIndexBuffer(m->IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
+#if RENDER
 	_deviceContext->DrawIndexedInstanced(m->IndicesCount, lod0Count, 0, 0, 0);
+#endif
 
 #if !defined(_INSTANCED_INPUT_LAYOUT)
 	hr = _deviceContext->Map(_srvBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &instanceData); FAIL_CHECK
 	memcpy(instanceData.pData, _lod1World, sizeof(PerInstanceBuffer) * lod1Count);
 	_deviceContext->Unmap(_srvBuffer, 0);
-
 #else
 	hr = _deviceContext->Map(_perInstanceBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &instanceData); FAIL_CHECK
 	memcpy(instanceData.pData, _lod1World, sizeof(PerInstanceBuffer) * lod1Count);
@@ -189,36 +204,55 @@ HRESULT Engine::Draw()
 	m = _meshes[1];
 	_deviceContext->IASetVertexBuffers(0, 1, &m->VertexBuffer, &stride, &offset);
 	_deviceContext->IASetIndexBuffer(m->IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+#if RENDER
 	_deviceContext->DrawIndexedInstanced(m->IndicesCount, lod1Count, 0, 0, 0);
+#endif
 
 #if !defined(_INSTANCED_INPUT_LAYOUT)
 	hr = _deviceContext->Map(_srvBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &instanceData); FAIL_CHECK
+#if BACKWARDS_RENDER
+	memcpy(instanceData.pData, _lod0World, sizeof(PerInstanceBuffer) * lod0Count);
+#else
 	memcpy(instanceData.pData, _lod2World, sizeof(PerInstanceBuffer) * lod2Count);
+#endif
 	_deviceContext->Unmap(_srvBuffer, 0);
-
 #else
 	hr = _deviceContext->Map(_perInstanceBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &instanceData); FAIL_CHECK
+#if BACKWARDS_RENDER
+	memcpy(instanceData.pData, _lod0World, sizeof(PerInstanceBuffer) * lod0Count);
+#else
 	memcpy(instanceData.pData, _lod2World, sizeof(PerInstanceBuffer) * lod2Count);
+#endif
 	_deviceContext->Unmap(_perInstanceBuffer, 0);
 #endif
+#if BACKWARDS_RENDER
+	m = _meshes[0];
+#else
 	m = _meshes[2];
+#endif
 	_deviceContext->IASetVertexBuffers(0, 1, &m->VertexBuffer, &stride, &offset);
 	_deviceContext->IASetIndexBuffer(m->IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+#if RENDER
 	_deviceContext->DrawIndexedInstanced(m->IndicesCount, lod2Count, 0, 0, 0);
+#endif
 
 #else
 	D3D11_MAPPED_SUBRESOURCE objectData;
 	OPTICK_GPU_EVENT("GPU::Draw");
+#if BACKWARDS_RENDER
+	for (int sw = 2; sw >= 0; sw--)
+#else
 	for (unsigned sw = 0; sw < 3; sw++)
+#endif
 	{
 		for (unsigned i = 0; i < OBJECTS_TO_RENDER; i++)
 		{
 			RenderObject* ro = &_objects[i];
 			if (ro->Switch != sw)
 				continue;
-			Mesh* m = ro->LODMeshes[ro->Switch];
+			Mesh* m = _meshes[sw];
 			_cbObjectData.World = ro->Transform.GetWorldMatrix();
-			HRESULT hr = _deviceContext->Map(_cbObject, 0, D3D11_MAP_WRITE_DISCARD, 0, &objectData); FAIL_CHECK
+			hr = _deviceContext->Map(_cbObject, 0, D3D11_MAP_WRITE_DISCARD, 0, &objectData); FAIL_CHECK
 			memcpy(objectData.pData, &_cbObjectData, sizeof(CBObject));
 			_deviceContext->Unmap(_cbObject, 0);
 
@@ -226,8 +260,9 @@ HRESULT Engine::Draw()
 			UINT offset = 0;
 			_deviceContext->IASetVertexBuffers(0, 1, &m->VertexBuffer, &stride, &offset);
 			_deviceContext->IASetIndexBuffer(m->IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-
+#if RENDER
 			_deviceContext->DrawIndexed(m->IndicesCount, 0, 0);
+#endif
 		}
 	}
 
